@@ -1,0 +1,183 @@
+local opt_arch = fab.option("arch", { "x86_64" }) or "x86_64"
+local opt_bootloader = fab.option("bootloader", { "limine", "tartarus" }) or "tartarus"
+local opt_build_type = fab.option("buildtype", { "debug", "release" }) or "debug"
+
+local kernel_sources = sources(fab.glob("kernel/src/**/*.c", "!kernel/src/arch/**"))
+table.extend(kernel_sources, sources(fab.glob(path("kernel/src/arch", opt_arch, "**/*.c"))))
+
+if opt_arch == "x86_64" then
+    table.extend(kernel_sources, sources(fab.glob("kernel/src/arch/x86_64/**/*.asm")))
+end
+
+local c = require("lang_c")
+local asm = require("lang_nasm")
+local linker = require("ld")
+
+local clang = c.get_clang()
+assert(clang ~= nil, "No clang compiler found")
+
+local nasm = asm.get_nasm()
+assert(nasm ~= nil, "No nasm found")
+
+local ld = linker.get_linker("ld.lld")
+assert(ld ~= nil, "No ld.lld found")
+
+local include_dirs = {
+    c.include_dir(path("kernel/include/arch/", opt_arch)),
+    c.include_dir("kernel/include"),
+    c.include_dir("kernel/include/lib")
+}
+
+local c_flags = {
+    "-std=gnu23",
+    "-ffreestanding",
+    "-nostdinc",
+
+    "-fno-strict-aliasing",
+    "-fstack-protector-all",
+
+    "-Wimplicit-fallthrough",
+    "-Wmissing-field-initializers",
+
+    "-fdiagnostics-color=always",
+    "-DUACPI_FORMATTED_LOGGING",
+    "-DUACPI_BAREBONES_MODE",
+    "-DLIMINE_API_REVISION=5"
+}
+
+if opt_build_type == "release" then
+    table.extend(c_flags, {
+        "-O3",
+        "-flto",
+    })
+end
+
+if opt_build_type == "debug" then
+    table.extend(c_flags, {
+        "-O0",
+        "-g",
+        -- "-fsanitize=undefined",
+        "-fno-lto",
+        "-fno-omit-frame-pointer",
+    })
+end
+
+
+local freestanding_c_headers = fab.git(
+    "freestanding-c-headers",
+    "https://github.com/osdev0/freestnd-c-hdrs.git",
+    "4039f438fb1dc1064d8e98f70e1cf122f91b763b"
+)
+
+local cc_runtime = fab.git(
+    "cc-runtime",
+    "https://github.com/osdev0/cc-runtime.git",
+    "dae79833b57a01b9fd3e359ee31def69f5ae899b"
+)
+
+
+local limine_protocol = fab.git(
+    "limine_protocol",
+    "https://codeberg.org/Limine/limine-protocol.git",
+    "fd3197997e"
+)
+
+table.insert(include_dirs, c.include_dir(path(fab.build_dir(), limine_protocol.path, "include")))
+
+local tartarus_protocol = fab.git(
+    "tartarus",
+    "https://github.com/elysium-os/tartarus-bootloader.git",
+    "d1ecb3dd137ecfb08ac15b6b8fc5233a9daefd97"
+)
+
+table.insert(include_dirs, c.include_dir(path(fab.build_dir(), tartarus_protocol.path)))
+
+local flanterm = fab.git(
+    "flanterm",
+    "https://codeberg.org/Mintsuki/Flanterm.git",
+    "b5038e828de1dc6c049222a3c1670f7976e6c5a3"
+)
+
+local uacpi = fab.git(
+    "uacpi",
+    "https://github.com/uACPI/uACPI.git",
+    "1ca45f34f3364344db0622615fb72a94a17b967a"
+)
+
+table.insert(include_dirs, c.include_dir(path(fab.build_dir(), flanterm.path, "src")))
+-- table.insert(include_dirs, c.include_dir(path(fab.build_dir(), uacpi.path, "include")))
+table.insert(include_dirs, c.include_dir(path(fab.build_dir(), freestanding_c_headers.path, opt_arch .. "/include")))
+
+local flanterm_sources = {}
+table.extend(flanterm_sources, sources(fab.glob("src/*.c", { relative_to = flanterm.path })))
+
+-- local uacpi_sources = {}
+-- table.extend(uacpi_sources, sources(fab.glob("source/*.c", { relative_to = uacpi.path })))
+
+if opt_arch == "x86_64" then
+    -- Flags
+    table.extend(c_flags, {
+        "--target=x86_64-none-elf",
+        "-mno-red-zone",
+        "-mgeneral-regs-only",
+        "-mabi=sysv",
+        "-mcmodel=kernel",
+        "-D__ARCH_X86_64__"
+    })
+
+    if opt_bootloader == "limine" then
+        table.insert(c_flags, "-D__BOOTLOADER_LIMINE__")
+    elseif opt_bootloader == "tartarus" then
+        table.insert(c_flags, "-D__BOOTLOADER_TARTARUS__")
+    end
+
+    if opt_build_type == "debug" then
+        table.insert(c_flags, "-fno-sanitize=alignment")
+    end
+end
+
+local objects = {}
+local flanterm_objects = generate(flanterm_sources, {
+    c = function(sources) return clang:generate(sources, c_flags, include_dirs) end
+})
+-- local uacpi_objects = generate(uacpi_sources, {
+--     c = function(sources) return clang:generate(sources, c_flags, include_dirs) end
+-- })
+
+table.extend(objects, flanterm_objects)
+-- table.extend(objects, uacpi_objects)
+
+local kernel_flags = {}
+table.extend(kernel_flags, c_flags)
+table.extend(kernel_flags, {
+    "-Wall",
+    "-Wextra",
+    "-Wvla",
+    "-Werror",
+    "-Wno-error=unused-function"
+})
+
+local generators = {
+    c = function(sources) return clang:generate(sources, kernel_flags, include_dirs) end
+}
+
+local linker_script
+
+if opt_arch == "x86_64" then
+    local nasm_flags = { "-f", "elf64", "-Werror" }
+
+    generators.asm = function(sources) return nasm:generate(sources, nasm_flags) end
+    linker_script = fab.def_source("linker-scripts/x86_64-" .. opt_bootloader .. ".lds")
+end
+
+table.extend(objects, generate(kernel_sources, generators))
+
+local kernel = ld:link("kernel.elf", objects, {
+    "-znoexecstack"
+}, linker_script)
+
+return {
+    install = {
+        ["kernel.elf"] = kernel
+    }
+}
