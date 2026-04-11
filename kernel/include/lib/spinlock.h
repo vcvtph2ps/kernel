@@ -8,7 +8,7 @@ typedef struct {
     ATOMIC uint32_t lock;
 } spinlock_t;
 
-#define SPINLOCK_INIT ((spinlock_t) { 0, 0 })
+#define SPINLOCK_INIT ((spinlock_t) { 0 })
 
 /**
  * @brief Acquires a spinlock and raises IRQL to DISPATCH_LEVEL.
