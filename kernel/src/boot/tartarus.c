@@ -5,6 +5,8 @@
 #include <memory/memory.h>
 #include <tartarus.h>
 
+#include "memory/ptm.h"
+
 tartarus_boot_info_t* g_tartarus_boot_info;
 
 bool bootloader_tartarus_get_framebuffer_info(size_t index, bootloader_framebuffer_info_t* info) {
@@ -89,15 +91,15 @@ void bootloader_tartarus_set_framebuffer_address(size_t i, void* address) {
 }
 
 void bootloader_tartarus_map_kernel_segments() {
-    // for(size_t i = 0; i < g_tartarus_boot_info->kernel_segment_count; i++) {
-    //     tartarus_kernel_segment_t segment = g_tartarus_boot_info->kernel_segments[i];
-    //     vm_protection_t flags = VM_PROT_NO_ACCESS;
-    //     if(segment.flags & TARTARUS_KERNEL_SEGMENT_FLAG_READ) { flags.read = true; }
-    //     if(segment.flags & TARTARUS_KERNEL_SEGMENT_FLAG_WRITE) { flags.write = true; }
-    //     if(segment.flags & TARTARUS_KERNEL_SEGMENT_FLAG_EXECUTE) { flags.execute = true; }
-    //     printf("0x%llx -> 0x%llx - %zu [%c%c%c]\n", segment.paddr, segment.vaddr, segment.size, flags.read ? 'r' : '-', flags.write ? 'w' : '-', flags.execute ? 'x' : '-');
-    //     for(uintptr_t i = 0; i < segment.size; i += PAGE_SIZE_DEFAULT) { ptm_map(g_vm_global_address_space, segment.vaddr + i, segment.paddr + i, PAGE_SIZE_DEFAULT, flags, VM_CACHE_NORMAL, VM_PRIVILEGE_KERNEL, true); }
-    // }
+    for(size_t i = 0; i < g_tartarus_boot_info->kernel_segment_count; i++) {
+        tartarus_kernel_segment_t segment = g_tartarus_boot_info->kernel_segments[i];
+        vm_protection_t flags = VM_PROT_NO_ACCESS;
+        if(segment.flags & TARTARUS_KERNEL_SEGMENT_FLAG_READ) { flags.read = true; }
+        if(segment.flags & TARTARUS_KERNEL_SEGMENT_FLAG_WRITE) { flags.write = true; }
+        if(segment.flags & TARTARUS_KERNEL_SEGMENT_FLAG_EXECUTE) { flags.execute = true; }
+        LOG_INFO("0x%llx -> 0x%llx - %zu [%c%c%c]\n", segment.paddr, segment.vaddr, segment.size, flags.read ? 'r' : '-', flags.write ? 'w' : '-', flags.execute ? 'x' : '-');
+        for(uintptr_t i = 0; i < segment.size; i += PAGE_SIZE_DEFAULT) { ptm_map(g_vm_global_address_space, segment.vaddr + i, segment.paddr + i, PAGE_SIZE_DEFAULT, flags, VM_CACHE_NORMAL, VM_PRIVILEGE_KERNEL, true); }
+    }
 }
 
 

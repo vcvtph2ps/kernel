@@ -6,6 +6,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "memory/ptm.h"
+
 #define LIMINE_REQUEST [[gnu::used, gnu::section(".limine_requests")]]
 
 LIMINE_REQUEST volatile struct limine_framebuffer_request g_framebuffer_request = { .id = LIMINE_FRAMEBUFFER_REQUEST_ID, .revision = 0 };
@@ -119,26 +121,26 @@ void bootloader_limine_set_framebuffer_address(size_t i, void* address) {
     g_framebuffer_request.response->framebuffers[i]->address = address;
 }
 
-// #define MAP_SEGMENT(name, map_type)                                                                                                                                                                                             \
-//     {                                                                                                                                                                                                                           \
-//         extern char name##_start[];                                                                                                                                                                                             \
-//         extern char name##_end[];                                                                                                                                                                                               \
-//         uintptr_t offset = name##_start - kernel_start;                                                                                                                                                                         \
-//         uintptr_t size = name##_end - name##_start;                                                                                                                                                                             \
-//         LOG_INFO("%s - 0x%llx, 0x%llx\n", #name, offset, size);                                                                                                                                                                 \
-//         for(uintptr_t i = offset; i < offset + size; i += PAGE_SIZE_DEFAULT) { ptm_map(g_vm_global_address_space, kernel_virt + i, kernel_phys + i, PAGE_SIZE_DEFAULT, map_type, VM_CACHE_NORMAL, VM_PRIVILEGE_KERNEL, true); } \
-//     }
+#define MAP_SEGMENT(name, map_type)                                                                                                                                                                                             \
+    {                                                                                                                                                                                                                           \
+        extern char name##_start[];                                                                                                                                                                                             \
+        extern char name##_end[];                                                                                                                                                                                               \
+        uintptr_t offset = name##_start - kernel_start;                                                                                                                                                                         \
+        uintptr_t size = name##_end - name##_start;                                                                                                                                                                             \
+        LOG_INFO("0x%llx -> 0x%llx - %zu [%c%c%c]\n", kernel_phys + offset, kernel_virt + offset, size, map_type.read ? 'r' : '-', map_type.write ? 'w' : '-', map_type.execute ? 'x' : '-');                                   \
+        for(uintptr_t i = offset; i < offset + size; i += PAGE_SIZE_DEFAULT) { ptm_map(g_vm_global_address_space, kernel_virt + i, kernel_phys + i, PAGE_SIZE_DEFAULT, map_type, VM_CACHE_NORMAL, VM_PRIVILEGE_KERNEL, true); } \
+    }
 
 void bootloader_limine_map_kernel_segments() {
-    // extern char kernel_start[];
-    // extern char kernel_end[];
-    // phys_addr_t kernel_phys = (phys_addr_t) g_kernel_mapping.response->physical_base;
-    // virt_addr_t kernel_virt = (virt_addr_t) kernel_start;
+    extern char kernel_start[];
+    extern char kernel_end[];
+    phys_addr_t kernel_phys = (phys_addr_t) g_kernel_mapping.response->physical_base;
+    virt_addr_t kernel_virt = (virt_addr_t) kernel_start;
 
-    // MAP_SEGMENT(text, VM_PROT_RX);
-    // MAP_SEGMENT(rodata, VM_PROT_RO);
-    // MAP_SEGMENT(data, VM_PROT_RW);
-    // MAP_SEGMENT(requests, VM_PROT_RW);
+    MAP_SEGMENT(text, VM_PROT_RX);
+    MAP_SEGMENT(rodata, VM_PROT_RO);
+    MAP_SEGMENT(data, VM_PROT_RW);
+    MAP_SEGMENT(requests, VM_PROT_RW);
 }
 
 void kmain_limine(void) {
