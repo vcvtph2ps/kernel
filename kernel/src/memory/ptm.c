@@ -181,7 +181,7 @@ void ptm_map(vm_address_space_t* address_space, virt_addr_t vaddr, phys_addr_t p
     assert(length % ARCH_PAGE_SIZE_4K == 0);
 
     if(!prot.read) LOG_WARN("Mapping with no read permission is not supported, ignoring");
-    irql_t prev_irql = spinlock_lock(&address_space->lock);
+    irql_t prev_irql = spinlock_lock(&address_space->ptm.ptm_lock);
 
     for(size_t i = 0; i < length;) {
         page_size_t cursize = ARCH_PAGE_SIZE_4K;
@@ -193,7 +193,7 @@ void ptm_map(vm_address_space_t* address_space, virt_addr_t vaddr, phys_addr_t p
 
     ptm_flush_page(vaddr, length);
     // @todo: ipi
-    spinlock_unlock(&address_space->lock, prev_irql);
+    spinlock_unlock(&address_space->ptm.ptm_lock, prev_irql);
 }
 
 void ptm_rewrite(vm_address_space_t* address_space, uintptr_t vaddr, size_t length, vm_protection_t prot, vm_cache_t cache, vm_privilege_t privilege, bool global) {

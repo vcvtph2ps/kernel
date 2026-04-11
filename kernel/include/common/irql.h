@@ -19,7 +19,7 @@ typedef enum irql : uint8_t {
  * @param new_level The IRQL level to lower to.
  * @return the previous IRQL level
  */
-[[nodiscard]] irql_t irql_lower(irql_t new_level);
+irql_t irql_lower(irql_t new_level);
 
 /**
  * @brief Gets the current IRQL level.
