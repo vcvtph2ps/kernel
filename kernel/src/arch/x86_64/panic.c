@@ -15,7 +15,16 @@
     va_start(args, fmt);
     nl_vprintf(fmt, args);
     va_end(args);
-    log_print_nolock(LOG_LEVEL_FAIL, "Core: %d\n", apic_id);
+    log_print_nolock(LOG_LEVEL_FAIL, "\nOn core: %d\n\n", apic_id);
+
+    log_print_nolock(LOG_LEVEL_FAIL, "mrrp mrrp meow meow mrrp. oops\n");
+    log_print_nolock(LOG_LEVEL_FAIL, "                   _ |\\_\n");
+    log_print_nolock(LOG_LEVEL_FAIL, "                   \\` ..\\\n");
+    log_print_nolock(LOG_LEVEL_FAIL, "              __,.-\" =__Y=\n");
+    log_print_nolock(LOG_LEVEL_FAIL, "            .\"        )\n");
+    log_print_nolock(LOG_LEVEL_FAIL, "      _    /   ,    \\/\\_\n");
+    log_print_nolock(LOG_LEVEL_FAIL, "     ((____|    )_-\\ \\_-\\`\n");
+    log_print_nolock(LOG_LEVEL_FAIL, "     `-----'`-----` `--`\n");
 
     while(1) {
         __builtin_ia32_pause();
