@@ -1,15 +1,25 @@
 #pragma once
-#include <common/irql.h>
+#include <list.h>
 #include <stddef.h>
+#include <stdint.h>
 
 typedef struct arch_cpu_local arch_cpu_local_t;
 
 struct arch_cpu_local {
     arch_cpu_local_t* self;
-    irql_t current_irql;
 
     uint32_t core_id;
     uint32_t lapic_id;
+
+    struct {
+        uint32_t counter;
+        list_t queue;
+    } defered_work;
+
+    struct {
+        uint32_t counter;
+        bool yield_pending;
+    } preempt;
 };
 
 // NOLINTBEGIN
@@ -72,9 +82,6 @@ struct arch_cpu_local {
     )
 
 
-#define CPU_LOCAL_GET_CURRENT_THREAD()                            \
-    ({                                                            \
-        x86_64_thread_t* thread = CPU_LOCAL_READ(current_thread); \
-        thread;                                                   \
-    })
+#define CPU_LOCAL_GET_SELF() CPU_LOCAL_READ(self)
+#define CPU_LOCAL_GET_CURRENT_THREAD() CPU_LOCAL_READ(current_thread)
 // NOLINTEND

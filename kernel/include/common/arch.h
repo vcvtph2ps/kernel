@@ -64,3 +64,14 @@ uint32_t arch_get_core_count(void);
  * @brief dumps `c` into some unknown output that is useful for debugging.
  */
 void arch_debug_putc(char c);
+
+/**
+ * @brief Disables interrupts and returns whether they were previously enabled.
+ * @return true if interrupts were previously enabled, false otherwise.
+ */
+[[nodiscard]] uint64_t arch_disable_interupts();
+
+/**
+ * @brief Restores the previous interrupt state.
+ */
+void arch_restore_interupts(uint64_t prev_state);

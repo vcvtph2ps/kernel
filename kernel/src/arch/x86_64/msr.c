@@ -1,9 +1,7 @@
+#include <arch/cpu_local.h>
 #include <arch/msr.h>
 #include <assert.h>
-#include <common/irql.h>
 #include <limine.h>
-
-#include <arch/cpu_local.h>
 #include <memory/memory.h>
 
 [[nodiscard]] uint64_t arch_msr_read_msr(uint32_t msr) {

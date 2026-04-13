@@ -2,6 +2,7 @@
 
 // NOLINTBEGIN
 #define ATOMIC [[clang::annotate("atomic_only")]]
+#define ATOMIC_PARAM [[clang::annotate("atomic_only_param")]]
 
 #define ATOMIC_ACQUIRE __ATOMIC_ACQUIRE
 #define ATOMIC_RELEASE __ATOMIC_RELEASE

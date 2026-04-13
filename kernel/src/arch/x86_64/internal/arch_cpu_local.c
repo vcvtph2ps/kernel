@@ -1,7 +1,6 @@
 #include <arch/cpu_local.h>
 #include <arch/msr.h>
 #include <common/cpu_local.h>
-#include <common/irql.h>
 #include <memory/memory.h>
 #include <string.h>
 
@@ -13,8 +12,11 @@ uint32_t g_cpu_local_count;
 void init_cpu_local_data(arch_cpu_local_t* cpu_local, uint32_t core_id, uint32_t lapic_id) {
     cpu_local->core_id = core_id;
     cpu_local->lapic_id = lapic_id;
-    cpu_local->current_irql = IRQL_PASSIVE;
     cpu_local->self = cpu_local;
+    cpu_local->defered_work.queue = LIST_INIT;
+    cpu_local->defered_work.counter = 0;
+    cpu_local->preempt.counter = 0;
+    cpu_local->preempt.yield_pending = false;
 }
 
 void cpu_local_init_bsp() {

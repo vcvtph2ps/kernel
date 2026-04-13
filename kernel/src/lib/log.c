@@ -86,7 +86,7 @@ void log_init(void) {
     if(g_ft_ctx == nullptr) { arch_panic("Failed to setup flanterm context"); }
 }
 
-static spinlock_t g_log_lock = {};
+static spinlock_no_int_t g_log_lock = {};
 
 int nl_vprintf(const char* fmt, va_list val) {
     char buffer[512];
@@ -100,10 +100,10 @@ int nl_vprintf(const char* fmt, va_list val) {
 int vprintf(const char* fmt, va_list val) {
     char buffer[512];
     const int rv = npf_vsnprintf(buffer, 512, fmt, val);
-    irql_t irql = spinlock_lock(&g_log_lock);
+    uint64_t interrupt_state = spinlock_noint_lock(&g_log_lock);
     sink_debug(buffer);
     if(g_ft_ctx != nullptr) { sink_flanterm(buffer); }
-    spinlock_unlock(&g_log_lock, irql);
+    spinlock_noint_unlock(&g_log_lock, interrupt_state);
     return rv;
 }
 

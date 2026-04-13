@@ -2,6 +2,8 @@
 #include <assert.h>
 #include <common/arch.h>
 #include <common/boot/bootloader.h>
+#include <common/interrupts/dw.h>
+#include <common/sched/sched.h>
 #include <lib/helpers.h>
 #include <lib/spinlock.h>
 #include <list.h>
@@ -12,8 +14,6 @@
 #include <memory/vm.h>
 #include <rb.h>
 #include <string.h>
-
-#include "common/irql.h"
 
 vm_address_space_t* g_vm_global_address_space;
 
@@ -28,7 +28,7 @@ size_t vm_value_of_node(rb_node_t* node) {
 }
 
 
-static spinlock_t g_region_cache_lock = SPINLOCK_INIT;
+static spinlock_no_dw_t g_region_cache_lock = SPINLOCK_NO_DW_INIT;
 static list_t g_region_cache = LIST_INIT;
 
 [[clang::always_inline]] bool address_in_bounds(virt_addr_t address, virt_addr_t start, virt_addr_t end) {
@@ -151,13 +151,14 @@ static bool regions_mergeable(vm_region_t* left, vm_region_t* right) {
 
 /// Allocate a region from the internal vm region pool.
 static vm_region_t* region_alloc(bool global_lock_acquired) {
-    irql_t prev_region_cache_irql = spinlock_lock(&g_region_cache_lock);
+    sched_preempt_disable();
+    dw_status_disable();
+    spinlock_nodw_lock(&g_region_cache_lock);
     if(g_region_cache.count == 0) {
-        spinlock_unlock(&g_region_cache_lock, prev_region_cache_irql);
+        spinlock_nodw_unlock(&g_region_cache_lock);
 
         phys_addr_t page = pmm_alloc_page(PMM_FLAG_ZERO);
-        irql_t prev_global_lock_irql = IRQL_PASSIVE;
-        if(!global_lock_acquired) { prev_global_lock_irql = spinlock_lock(&g_vm_global_address_space->lock); }
+        if(!global_lock_acquired) { spinlock_nodw_lock(&g_vm_global_address_space->lock); }
 
         uintptr_t address;
         if(!find_hole(g_vm_global_address_space, VM_NO_HINT, PAGE_SIZE_DEFAULT, PAGE_SIZE_DEFAULT, &address)) { arch_panic("out of global address space"); }
@@ -174,22 +175,24 @@ static vm_region_t* region_alloc(bool global_lock_acquired) {
         region[0].dynamically_backed = false;
 
         region_insert(g_vm_global_address_space, &region[0]);
-        if(!global_lock_acquired) spinlock_unlock(&g_vm_global_address_space->lock, prev_global_lock_irql);
+        if(!global_lock_acquired) spinlock_nodw_unlock(&g_vm_global_address_space->lock);
 
-        prev_region_cache_irql = spinlock_lock(&g_region_cache_lock);
+        spinlock_nodw_lock(&g_region_cache_lock);
         for(unsigned int i = 1; i < PAGE_SIZE_DEFAULT / sizeof(vm_region_t); i++) list_push(&g_region_cache, &region[i].region_cache_node);
     }
 
     list_node_t* node = list_pop(&g_region_cache);
-    spinlock_unlock(&g_region_cache_lock, prev_region_cache_irql);
+    spinlock_nodw_unlock(&g_region_cache_lock);
+    dw_status_enable();
+    sched_preempt_enable();
     return CONTAINER_OF(node, vm_region_t, region_cache_node);
 }
 
 /// Free region into the internal vm region pool.
 static void region_free(vm_region_t* region) {
-    irql_t prev_irql = spinlock_lock(&g_region_cache_lock);
+    spinlock_nodw_lock(&g_region_cache_lock);
     list_push(&g_region_cache, &region->region_cache_node);
-    spinlock_unlock(&g_region_cache_lock, prev_irql);
+    spinlock_nodw_unlock(&g_region_cache_lock);
 }
 
 /// Create a region by cloning another to a new region.
@@ -299,13 +302,13 @@ static void* map_common(vm_address_space_t* address_space, void* hint, size_t le
     if(address % align != 0) { address = ALIGN_UP(address, align); }
 
     vm_region_t* region = region_alloc(false);
-    irql_t prev_irql = spinlock_lock(&address_space->lock);
+    spinlock_nodw_lock(&address_space->lock);
 
     if(!(flags & VM_FLAG_FIXED)) {
         bool result = find_hole(address_space, address, length, align, &address);
         if(!result) {
             region_free(region);
-            spinlock_unlock(&address_space->lock, prev_irql);
+            spinlock_nodw_unlock(&address_space->lock);
             return nullptr;
         }
     }
@@ -332,7 +335,7 @@ static void* map_common(vm_address_space_t* address_space, void* hint, size_t le
     if(!region->dynamically_backed) region_map(region, region->base, region->length);
 
     region_insert(address_space, region);
-    spinlock_unlock(&address_space->lock, prev_irql);
+    spinlock_nodw_unlock(&address_space->lock);
     return (void*) address;
 }
 
@@ -343,7 +346,7 @@ static void rewrite_common(vm_address_space_t* address_space, void* address, siz
     assert(length % PAGE_SIZE_DEFAULT == 0);
     assert(segment_in_bounds((uintptr_t) address, length, address_space->start, address_space->end));
 
-    irql_t prev_irql = spinlock_lock(&address_space->lock);
+    spinlock_nodw_lock(&address_space->lock);
 
     uintptr_t current_address = (uintptr_t) address;
 
@@ -445,7 +448,7 @@ static void rewrite_common(vm_address_space_t* address_space, void* address, siz
 
     r_skip:
     }
-    spinlock_unlock(&address_space->lock, prev_irql);
+    spinlock_nodw_unlock(&address_space->lock);
 }
 
 void* vm_map_anon(vm_address_space_t* address_space, void* hint, size_t length, vm_protection_t prot, vm_cache_t cache, vm_flags_t flags) {

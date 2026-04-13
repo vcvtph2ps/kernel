@@ -1,36 +1,70 @@
 #pragma once
 #include <common/arch.h>
-#include <common/irql.h>
 #include <lib/helpers.h>
 #include <stdint.h>
 
+/**
+ * @brief A spinlock that disables preemption on acquire and restores it on release.
+ * @note These should be used when the lock cannot be grabbed from deferred work or hardirqs
+ */
 typedef struct {
     ATOMIC uint32_t lock;
 } spinlock_t;
 
+/**
+ * @brief A spinlock that also disables deferred on acquire and restores it on release.
+ * @note These should only be used when the lock could be grabbed from a deferred work context but **not** from a hardirq context
+ */
+typedef struct {
+    ATOMIC uint32_t lock;
+} spinlock_no_dw_t;
+
+/**
+ * @brief A spinlock that also disables interrupts on acquire and restores them on release.
+ * @note These should only be used when the lock could be grabbed from a hardirq context
+ */
+typedef struct {
+    ATOMIC uint32_t lock;
+} spinlock_no_int_t;
+
 #define SPINLOCK_INIT ((spinlock_t) { 0 })
+#define SPINLOCK_NO_DW_INIT ((spinlock_no_dw_t) { 0 })
+#define SPINLOCK_NO_INT_INIT ((spinlock_no_int_t) { 0 })
 
 /**
- * @brief Acquires a spinlock and raises IRQL to DISPATCH_LEVEL.
- *
+ * @brief Acquires a spinlock and increments the preemption counter
  * @param lock Pointer to the spinlock to acquire.
- * @return The previous IRQL before it was raised.
  */
-[[nodiscard]] irql_t spinlock_lock(spinlock_t* lock);
+void spinlock_lock(spinlock_t* lock);
 
 /**
- * @brief Acquires a spinlock and raises IRQL to a specified level.
- *
- * @param lock Pointer to the spinlock to acquire.
- * @param irql The IRQL level to raise to.
- * @return The previous IRQL before it was raised.
- */
-[[nodiscard]] irql_t spinlock_lock_raise(spinlock_t* lock, irql_t irql);
-
-/**
- * @brief Releases a spinlock and restores the previous IRQL.
- *
+ * @brief Releases a spinlock and decrements the preemption counter
  * @param lock Pointer to the spinlock to release.
- * @param prev_irql The IRQL value to restore.
  */
-void spinlock_unlock(spinlock_t* lock, irql_t prev_irql);
+void spinlock_unlock(spinlock_t* lock);
+
+/**
+ * @brief Acquires a spinlock, increments the preemption and deferred work
+ * counters
+ * @param lock Pointer to the spinlock to acquire.
+ */
+void spinlock_nodw_lock(spinlock_no_dw_t* lock);
+
+/**
+ * @brief Releases a spinlock and decrements the preemption and deferred work
+ * counters
+ * @param lock Pointer to the spinlock to release.
+ */
+void spinlock_nodw_unlock(spinlock_no_dw_t* lock);
+
+/**
+ * @brief Acquires a spinlock, hard disables interrupts
+ * @param lock Pointer to the spinlock to acquire.
+ */
+[[nodiscard]] uint64_t spinlock_noint_lock(spinlock_no_int_t* lock);
+
+/**
+ * @brief Releases a spinlock and restores interrupts
+ * @param lock Pointer to the spinlock to release.
+ */
+void spinlock_noint_unlock(spinlock_no_int_t* lock, uint64_t interrupt_state);

@@ -14,7 +14,7 @@ struct pmm_node {
     pmm_node_t* next;
 };
 
-static spinlock_t g_pmm_lock = SPINLOCK_INIT;
+static spinlock_no_dw_t g_pmm_lock = SPINLOCK_NO_DW_INIT;
 static pmm_node_t* g_pmm_head;
 
 void pmm_init(void) {
@@ -40,15 +40,15 @@ void pmm_init(void) {
 }
 
 [[nodiscard]] phys_addr_t pmm_alloc_page(pmm_flags_t flags) {
-    irql_t prev_irql = spinlock_lock(&g_pmm_lock);
+    spinlock_nodw_lock(&g_pmm_lock);
     pmm_node_t* current = g_pmm_head;
     if(current == nullptr) {
-        spinlock_unlock(&g_pmm_lock, prev_irql);
+        spinlock_nodw_unlock(&g_pmm_lock);
         return 0;
     }
 
     g_pmm_head = g_pmm_head->next;
-    spinlock_unlock(&g_pmm_lock, prev_irql);
+    spinlock_nodw_unlock(&g_pmm_lock);
 
     if(flags & PMM_FLAG_ZERO) { memset(current, 0, PAGE_SIZE_DEFAULT); }
     return (phys_addr_t) FROM_HHDM(current);
@@ -62,8 +62,8 @@ void pmm_free_page(phys_addr_t addr) {
     assert((addr % PAGE_SIZE_DEFAULT) == 0);
     pmm_node_t* node = (pmm_node_t*) TO_HHDM(addr);
 
-    irql_t prev_irql = spinlock_lock(&g_pmm_lock);
+    spinlock_nodw_lock(&g_pmm_lock);
     node->next = g_pmm_head;
     g_pmm_head = node;
-    spinlock_unlock(&g_pmm_lock, prev_irql);
+    spinlock_nodw_unlock(&g_pmm_lock);
 }
