@@ -1,11 +1,12 @@
 #pragma once
+#include <arch/internal/gdt.h>
 #include <list.h>
 #include <stddef.h>
 #include <stdint.h>
 
 typedef struct arch_cpu_local arch_cpu_local_t;
 
-struct arch_cpu_local {
+struct [[gnu::aligned(64)]] arch_cpu_local {
     arch_cpu_local_t* self;
 
     uint32_t core_id;
@@ -20,6 +21,9 @@ struct arch_cpu_local {
         uint32_t counter;
         bool yield_pending;
     } preempt;
+
+    arch_gdt_t gdt;
+    arch_gdt_tss_t tss;
 };
 
 // NOLINTBEGIN

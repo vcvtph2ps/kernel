@@ -21,10 +21,17 @@ void arch_init_bsp() {
     LOG_INFO("CPU Vendor: %s\n", arch_cpuid_get_vendor_string());
     LOG_INFO("CPU Name: %s\n", arch_cpuid_get_name_string());
 
+    arch_gdt_init_common();
+    LOG_OKAY("GDT INIT OKAY!\n");
     while(1);
 }
 
 void arch_init_ap(uint32_t core_id) {
     (void) core_id;
+
+    cpu_local_init_ap(core_id);
+    ptm_init_kernel_ap();
+    arch_gdt_init_common();
+
     while(1);
 }
