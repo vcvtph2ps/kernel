@@ -42,7 +42,7 @@ local c_flags = {
     "-fdiagnostics-color=always",
     "-DUACPI_FORMATTED_LOGGING",
     "-DUACPI_BAREBONES_MODE",
-    "-DLIMINE_API_REVISION=5"
+    "-DLIMINE_API_REVISION=6"
 }
 
 if opt_build_type == "release" then
