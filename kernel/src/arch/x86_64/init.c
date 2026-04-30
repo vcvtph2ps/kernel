@@ -1,17 +1,17 @@
+#include <arch/hardware/fpu.h>
+#include <arch/hardware/lapic.h>
 #include <arch/internal/cpuid.h>
 #include <common/arch.h>
+#include <common/boot/bootloader.h>
 #include <common/cpu_local.h>
+#include <common/interrupts/dw.h>
 #include <common/interrupts/interrupt.h>
 #include <lib/log.h>
+#include <memory/heap.h>
 #include <memory/memory.h>
 #include <memory/pmm.h>
 #include <memory/ptm.h>
 #include <memory/slab.h>
-
-#include "arch/hardware/lapic.h"
-#include "common/boot/bootloader.h"
-#include "common/interrupts/dw.h"
-#include "memory/heap.h"
 
 static uint32_t g_arch_ap_finished = 0;
 
@@ -51,8 +51,11 @@ void arch_init_bsp() {
     arch_lapic_init_bsp();
     LOG_OKAY("LAPIC INIT OKAY!\n");
 
-    cpu_local_init_storage(g_bootloader_info.cpu_count);
+    arch_fpu_init_bsp();
+    LOG_OKAY("FPU INIT OKAY!\n");
 
+
+    cpu_local_init_storage(g_bootloader_info.cpu_count);
     init_aps();
 
     while(1);
@@ -68,6 +71,7 @@ void arch_init_ap(uint32_t core_id) {
     arch_lapic_init_ap_early();
     arch_gdt_init_common();
     interrupt_init_ap();
+    arch_fpu_init_ap();
 
     LOG_OKAY("core %u done init\n", core_id);
     while(1);
