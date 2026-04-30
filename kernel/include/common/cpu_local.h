@@ -13,7 +13,14 @@ void cpu_local_init_bsp();
  */
 void cpu_local_init_storage(uint32_t core_count);
 
-
+/**`
+ * @brief Initializes the CPU local storage for this AP.
+ * @param core_id The id of the current core
+ */
 void cpu_local_init_ap(uint32_t core_id);
 
+/**
+ * @brief Returns the LAPIC id for a given core id
+ * @param core_id The id of the current core
+ */
 uint32_t cpu_local_get_core_lapic_id(uint32_t core_id);

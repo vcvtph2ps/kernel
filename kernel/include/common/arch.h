@@ -1,5 +1,6 @@
 #pragma once
 #include <arch/internal/cr.h>
+#include <arch/interrupts.h>
 #include <limine.h>
 #include <stddef.h>
 
@@ -39,6 +40,11 @@ void arch_relax(void);
  * @brief Panics the kernel with the specified message. This should only be called in unrecoverable error conditions where the kernel cannot continue running.
  */
 [[noreturn]] void arch_panic(const char* fmt, ...);
+
+/**
+ * @brief Panics the kernel and dumps the state of the interrupt frame. This should only be called in unrecoverable error conditions where the kernel cannot continue running.
+ */
+[[noreturn]] void arch_panic_int(arch_interrupts_frame_t* frame);
 
 /**
  * @brief Just kills the current core by looping forever

@@ -1,4 +1,3 @@
-
 #pragma once
 #include <stdarg.h>
 #include <stddef.h>
@@ -23,6 +22,12 @@ void log_init(void);
  * @brief Non-locking vprintf
  */
 int nl_vprintf(const char* fmt, va_list val); // NOLINT
+
+/**
+ * @brief Non-locking printf
+ */
+int nl_printf(const char* fmt, ...); // NOLINT
+
 
 /**
  * @brief Prints a log message with the specified log level and format string. This should only be called after log_init has been called.

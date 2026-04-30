@@ -96,6 +96,13 @@ int nl_vprintf(const char* fmt, va_list val) {
     return rv;
 }
 
+int nl_printf(const char* fmt, ...) {
+    va_list val;
+    va_start(val, fmt);
+    const int rv = nl_vprintf(fmt, val);
+    va_end(val);
+    return rv;
+}
 
 int vprintf(const char* fmt, va_list val) {
     char buffer[512];

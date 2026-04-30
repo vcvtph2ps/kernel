@@ -1,6 +1,7 @@
 #pragma once
 #include <arch/internal/gdt.h>
 #include <list.h>
+#include <memory/memory.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -22,6 +23,7 @@ struct [[gnu::aligned(64)]] arch_cpu_local {
         bool yield_pending;
     } preempt;
 
+    virt_addr_t lapic_base_address;
     arch_gdt_t gdt;
     arch_gdt_tss_t tss;
 };
