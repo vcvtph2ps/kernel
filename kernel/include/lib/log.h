@@ -11,7 +11,7 @@ typedef enum {
     LOG_LEVEL_FAIL,
 } log_level_t;
 
-#define LOG_LEVEL_MIN LOG_LEVEL_INFO
+#define LOG_LEVEL_MIN LOG_LEVEL_STRC
 
 /**
  * @brief Initializes the logging system. This should be called once during early initialization before any calls to log_print or the LOG_* macros.
@@ -56,3 +56,6 @@ void log_print_nolock(log_level_t log, const char* fmt, ...);
 
 #define LOG_INFO(fmt, ...)                                                                       \
     do { log_print(LOG_LEVEL_INFO, LOG_COLORIZE("info | ", "96") fmt, ##__VA_ARGS__); } while(0)
+
+#define LOG_STRC(fmt, ...)                                                                       \
+    do { log_print(LOG_LEVEL_STRC, LOG_COLORIZE("strc | ", "95") fmt, ##__VA_ARGS__); } while(0)
