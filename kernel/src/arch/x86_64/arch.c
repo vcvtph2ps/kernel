@@ -54,6 +54,12 @@ uint32_t arch_get_core_count() {
     return (rflags & (1 << 9)) > 0;
 }
 
+[[nodiscard]] uint64_t arch_enable_interupts() {
+    uint64_t rflags;
+    __asm__ volatile("pushfq\n" "pop %0\n" "sti\n" : "=r"(rflags) : : "memory");
+    return (rflags & (1 << 9)) > 0;
+}
+
 void arch_restore_interupts(uint64_t prev_state) {
     if(prev_state) {
         __asm__ volatile("sti" ::: "memory");

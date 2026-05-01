@@ -78,6 +78,12 @@ void arch_debug_putc(char c);
 [[nodiscard]] uint64_t arch_disable_interupts();
 
 /**
+ * @brief Enables interrupts and returns whether they were previously enabled.
+ * @return true if interrupts were previously enabled, false otherwise.
+ */
+[[nodiscard]] uint64_t arch_enable_interupts();
+
+/**
  * @brief Restores the previous interrupt state.
  */
 void arch_restore_interupts(uint64_t prev_state);
