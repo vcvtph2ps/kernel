@@ -10,6 +10,7 @@
 #include <common/userspace/process.h>
 #include <common/userspace/syscall.h>
 #include <fs/vfs.h>
+#include <ldr/elfldr.h>
 #include <lib/log.h>
 #include <memory/heap.h>
 #include <memory/memory.h>
@@ -105,28 +106,23 @@ void arch_init_bsp() {
     syscall_init();
     sched_init_bsp();
 
-    uint8_t process_bytes[] = { 0x48, 0xc7, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x48, 0xc7, 0xc7, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x05 };
+    mount_initramfs();
 
     vm_address_space_t* process_as = heap_alloc(sizeof(vm_address_space_t));
     ptm_init_user(process_as);
 
+    elfldr_elf_loader_info_t* elf_info;
+    bool loaded_elf = elfldr_load_file(process_as, &VFS_MAKE_ABS_PATH("/usr/bin/test"), &elf_info);
+    assert(loaded_elf && "Failed to load init file");
+
     size_t stack_virt_size = 1024 * PAGE_SIZE_DEFAULT;
     virt_addr_t user_stack = (virt_addr_t) vm_map_anon(process_as, (void*) (MEMORY_USERSPACE_END - (10 * PAGE_SIZE_DEFAULT) - stack_virt_size), stack_virt_size, VM_PROT_RW, VM_CACHE_NORMAL, VM_FLAG_FIXED | VM_FLAG_ZERO | VM_FLAG_DYNAMICALLY_BACKED);
     virt_addr_t user_stack_top = user_stack + stack_virt_size;
-    void* code = vm_map_anon(process_as, VM_NO_HINT, ALIGN_UP(sizeof(process_bytes) / sizeof(uint8_t), PAGE_SIZE_DEFAULT), VM_PROT_RWX, VM_CACHE_NORMAL, VM_FLAG_NONE);
-    process_t* process = process_create(process_as, (virt_addr_t) code, user_stack_top);
 
-    vm_copy_to(process_as, (uintptr_t) code, process_bytes, sizeof(process_bytes));
+    process_t* process = process_create(process_as, elf_info->executable_entry_point, user_stack_top);
 
     // @todo: what the fuck
     sched_thread_schedule(CONTAINER_OF(process->threads.head, thread_t, list_node_proc));
-
-    mount_initramfs();
-
-    char buf[1024];
-    size_t out;
-    vfs_read(&VFS_MAKE_ABS_PATH("hello.txt"), buf, 1024, 0, &out);
-    LOG_INFO("read %zu bytes from hello.txt: %.*s\n", out, (int) out, buf);
 
     sched_arch_handoff();
     while(1);
