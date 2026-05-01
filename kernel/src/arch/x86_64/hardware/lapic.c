@@ -35,7 +35,7 @@
 #define LAPIC_LVT_TIMER 0x320
 #define LAPIC_LVT_THERMAL 0x330
 #define LAPIC_LVT_PERF 0x340
-#define LAPIC_LVT_LINT0 0x350    // lapic_timer_init_ap();
+#define LAPIC_LVT_LINT0 0x350
 
 #define LAPIC_LVT_LINT1 0x360
 #define LAPIC_LVT_ERROR 0x370
