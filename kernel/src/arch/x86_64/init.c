@@ -9,6 +9,7 @@
 #include <common/sched/sched.h>
 #include <common/userspace/process.h>
 #include <common/userspace/syscall.h>
+#include <fs/vfs.h>
 #include <lib/log.h>
 #include <memory/heap.h>
 #include <memory/memory.h>
@@ -32,6 +33,47 @@ void init_aps() {
         bootloader_start_ap(i, current_core_id);
         while(ATOMIC_LOAD(&g_arch_ap_finished, ATOMIC_ACQUIRE) == 0) { arch_relax(); }
         current_core_id++;
+    }
+}
+
+void mount_initramfs() {
+    for(size_t i = 0; i < g_bootloader_info.module_count; i++) {
+        bootloader_module_t module = {};
+        if(!bootloader_get_module(i, &module)) {
+            assert(false);
+            continue;
+        }
+        LOG_INFO("Module %zu: %s, address: %p, size: %zu\n", i, module.path, module.address, module.size);
+    }
+
+    bootloader_module_t initramfs_module;
+    bool found_initramfs = bootloader_find_module("/boot/initramfs.rdk", &initramfs_module);
+    if(!found_initramfs) { arch_panic("Failed to find initramfs\n"); }
+
+    vfs_result_t res = vfs_mount(&g_vfs_rdsk_ops, nullptr, (void*) initramfs_module.address);
+    if(res != VFS_RESULT_OK) { arch_panic("Failed to mount initramfs (%d)\n", res); }
+    LOG_OKAY("mounted initramfs\n");
+
+    vfs_node_t* root_node;
+    res = vfs_root(&root_node);
+    if(res != VFS_RESULT_OK) { arch_panic("Failed to get root node (%d)\n", res); }
+
+    size_t offset = 0;
+    while(1) {
+        char* dirent_name;
+        res = root_node->ops->readdir(root_node, &offset, &dirent_name);
+        if(res == VFS_RESULT_ERR_NOT_FOUND) { break; }
+        assertf(res == VFS_RESULT_OK, "Failed to readdir %d", res);
+        if(dirent_name == nullptr) { break; }
+
+        vfs_node_t* dirent;
+        res = root_node->ops->lookup(root_node, dirent_name, &dirent);
+        assertf(res == VFS_RESULT_OK, "Failed to lookup dirent %d", res);
+
+        vfs_node_attr_t attr;
+        res = dirent->ops->attr(dirent, &attr);
+        assertf(res == VFS_RESULT_OK, "Failed to get dirent attr %d", res);
+        LOG_INFO("%s: %s %d bytes\n", dirent->type == VFS_NODE_TYPE_DIR ? "dir" : "file", dirent_name, attr.size);
     }
 }
 
@@ -78,6 +120,13 @@ void arch_init_bsp() {
 
     // @todo: what the fuck
     sched_thread_schedule(CONTAINER_OF(process->threads.head, thread_t, list_node_proc));
+
+    mount_initramfs();
+
+    char buf[1024];
+    size_t out;
+    vfs_read(&VFS_MAKE_ABS_PATH("hello.txt"), buf, 1024, 0, &out);
+    LOG_INFO("read %zu bytes from hello.txt: %.*s\n", out, (int) out, buf);
 
     sched_arch_handoff();
     while(1);

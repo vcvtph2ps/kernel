@@ -129,6 +129,14 @@ bool bootloader_get_cpu(size_t index, bootloader_cpu_info_t* info);
 bool bootloader_get_module(size_t index, bootloader_module_t* module);
 
 /**
+ * @brief Finds the module with the specified path and retrieves its information.
+ * @param path The path of the module to find.
+ * @param module A pointer to a bootloader_module_t structure to receive the module information.
+ * @return true if the module information was successfully retrieved, false if the path was not found
+ */
+bool bootloader_find_module(const char* path, bootloader_module_t* out_module);
+
+/**
  * @brief Starts the AP at the specified index with the specified argument.
  * @param index The index of the AP to start. Must be less than g_bootloader_info.cpu_count and must refer to an AP that can be booted (see bootloader_cpu_info_t.can_boot).
  * @param arg The argument to pass to the AP. This argument is always the kernels core id for that ap
