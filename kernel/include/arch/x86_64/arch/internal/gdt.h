@@ -38,4 +38,7 @@ typedef struct [[gnu::packed]] {
     uint16_t io_map_base;
 } arch_gdt_tss_t;
 
+/**
+ * @brief Initializes the GDT with common entries for the current CPU
+ */
 void arch_gdt_init_common();

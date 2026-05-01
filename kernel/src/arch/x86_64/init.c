@@ -6,12 +6,16 @@
 #include <common/cpu_local.h>
 #include <common/interrupts/dw.h>
 #include <common/interrupts/interrupt.h>
+#include <common/sched/sched.h>
+#include <common/userspace/process.h>
+#include <common/userspace/syscall.h>
 #include <lib/log.h>
 #include <memory/heap.h>
 #include <memory/memory.h>
 #include <memory/pmm.h>
 #include <memory/ptm.h>
 #include <memory/slab.h>
+#include <memory/vm.h>
 
 static uint32_t g_arch_ap_finished = 0;
 
@@ -54,10 +58,28 @@ void arch_init_bsp() {
     arch_fpu_init_bsp();
     LOG_OKAY("FPU INIT OKAY!\n");
 
-
     cpu_local_init_storage(g_bootloader_info.cpu_count);
     init_aps();
+    syscall_init();
+    sched_init_bsp();
 
+    uint8_t process_bytes[] = { 0x48, 0xc7, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x48, 0xc7, 0xc7, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x05 };
+
+    vm_address_space_t* process_as = heap_alloc(sizeof(vm_address_space_t));
+    ptm_init_user(process_as);
+
+    size_t stack_virt_size = 1024 * PAGE_SIZE_DEFAULT;
+    virt_addr_t user_stack = (virt_addr_t) vm_map_anon(process_as, (void*) (MEMORY_USERSPACE_END - (10 * PAGE_SIZE_DEFAULT) - stack_virt_size), stack_virt_size, VM_PROT_RW, VM_CACHE_NORMAL, VM_FLAG_FIXED | VM_FLAG_ZERO | VM_FLAG_DYNAMICALLY_BACKED);
+    virt_addr_t user_stack_top = user_stack + stack_virt_size;
+    void* code = vm_map_anon(process_as, VM_NO_HINT, ALIGN_UP(sizeof(process_bytes) / sizeof(uint8_t), PAGE_SIZE_DEFAULT), VM_PROT_RWX, VM_CACHE_NORMAL, VM_FLAG_NONE);
+    process_t* process = process_create(process_as, (virt_addr_t) code, user_stack_top);
+
+    vm_copy_to(process_as, (uintptr_t) code, process_bytes, sizeof(process_bytes));
+
+    // @todo: what the fuck
+    sched_thread_schedule(CONTAINER_OF(process->threads.head, thread_t, list_node_proc));
+
+    sched_arch_handoff();
     while(1);
 }
 
@@ -67,12 +89,13 @@ void arch_init_ap(uint32_t core_id) {
 
     LOG_OKAY("core %u early init\n", core_id);
 
-    cpu_local_init_ap(core_id);
     arch_lapic_init_ap_early();
+    cpu_local_init_ap(core_id);
     arch_gdt_init_common();
     interrupt_init_ap();
     arch_fpu_init_ap();
 
-    LOG_OKAY("core %u done init\n", core_id);
+    ATOMIC_STORE(&g_arch_ap_finished, 1, ATOMIC_RELAXED);
+
     while(1);
 }

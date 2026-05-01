@@ -211,12 +211,16 @@ void lapic_configure() {
     lapic_write(LAPIC_SPURIOUS, spurious);
 }
 
+void lapic_timer_init_bsp();
+void lapic_timer_init_ap();
+
 void arch_lapic_init_bsp() {
     apic_enable_mode_bsp();
     CPU_LOCAL_WRITE(lapic_id, arch_lapic_get_id());
     CPU_LOCAL_WRITE(lapic_base_address, intrnal_lapic_get_base_address());
 
     lapic_configure();
+    lapic_timer_init_bsp();
     LOG_OKAY("initialized in %s mode for lapic %d (bsp)\n", g_x2apic_mode ? "x2APIC" : "xAPIC", arch_lapic_get_id());
 }
 
@@ -228,6 +232,7 @@ void arch_lapic_init_ap() {
     CPU_LOCAL_WRITE(lapic_base_address, intrnal_lapic_get_base_address());
 
     lapic_configure();
+    lapic_timer_init_ap();
     LOG_OKAY("initialized in %s mode for lapic %d\n", g_x2apic_mode ? "x2APIC" : "xAPIC", arch_lapic_get_id());
 }
 

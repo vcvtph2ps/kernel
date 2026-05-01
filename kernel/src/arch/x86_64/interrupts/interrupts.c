@@ -1,10 +1,12 @@
 #include <arch/cpu_local.h>
+#include <arch/hardware/lapic.h>
 #include <arch/interrupts.h>
 #include <assert.h>
+#include <common/arch.h>
+#include <common/interrupts/dw.h>
 #include <common/interrupts/interrupt.h>
-
-#include "arch/hardware/lapic.h"
-#include "common/arch.h"
+#include <common/sched/sched.h>
+#include <log.h>
 
 // @todo: add fred interrupts
 
@@ -33,9 +35,28 @@ void interrupt_set_usermode_stack(uint64_t stack_pointer) {
 
 // @todo: soft ints and threaded shit
 void x86_64_dispatch_interrupt(arch_interrupts_frame_t* frame) {
-    nl_printf("Interrupt: %lu\n", frame->vector);
+    bool is_threaded = CPU_LOCAL_READ(preempt.threaded);
+    bool is_outmost_handler = false;
+
+    if(is_threaded) {
+        is_outmost_handler = !CPU_LOCAL_GET_CURRENT_THREAD()->common.in_interrupt_handler;
+        if(is_outmost_handler) { CPU_LOCAL_GET_CURRENT_THREAD()->common.in_interrupt_handler = true; }
+
+        sched_preempt_disable();
+        dw_status_disable();
+    }
+
+    if(frame->vector < 0x20) { arch_panic_int(frame); }
     if(g_handlers[frame->vector] != nullptr) g_handlers[frame->vector](frame->vector);
     if(frame->vector >= 32) arch_lapic_eoi();
 
-    if(frame->vector < 0x20) { arch_panic_int(frame); }
+    if(is_threaded) {
+        (void) arch_enable_interupts();
+        dw_status_enable();
+        (void) arch_disable_interupts();
+
+        sched_preempt_enable();
+
+        if(is_outmost_handler) { CPU_LOCAL_GET_CURRENT_THREAD()->common.in_interrupt_handler = false; }
+    }
 }

@@ -1,5 +1,7 @@
 #pragma once
 #include <arch/internal/gdt.h>
+#include <arch/sched/thread.h>
+#include <common/sched/sched.h>
 #include <list.h>
 #include <memory/memory.h>
 #include <stddef.h>
@@ -9,6 +11,7 @@ typedef struct arch_cpu_local arch_cpu_local_t;
 
 struct [[gnu::aligned(64)]] arch_cpu_local {
     arch_cpu_local_t* self;
+    x86_64_thread_t* current_thread;
 
     uint32_t core_id;
     uint32_t lapic_id;
@@ -20,8 +23,11 @@ struct [[gnu::aligned(64)]] arch_cpu_local {
 
     struct {
         uint32_t counter;
+        bool threaded;
         bool yield_pending;
     } preempt;
+
+    scheduler_t sched;
 
     virt_addr_t lapic_base_address;
     arch_gdt_t gdt;

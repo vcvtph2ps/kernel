@@ -13,6 +13,12 @@ void ptm_init_kernel_bsp();
 void ptm_init_kernel_ap();
 
 /**
+ * @brief Initializes the paging system for a user address space.
+ * @param address_space The user address space to initialize.
+ */
+void ptm_init_user(vm_address_space_t* address_space);
+
+/**
  * @brief Maps a range of virtual addresses to physical addresses in the specified address space.
  * @param address_space The address space to modify.
  * @param vaddr The starting virtual address to map. Must be page-aligned.
