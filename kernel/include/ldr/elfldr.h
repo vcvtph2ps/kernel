@@ -2,8 +2,7 @@
 #include <common/userspace/process.h>
 #include <fs/vfs.h>
 #include <memory/memory.h>
-
-#include "memory/vm.h"
+#include <memory/vm.h>
 
 typedef struct {
     // @note: address of where we should start execution

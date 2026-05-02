@@ -3,10 +3,9 @@
 #include <common/boot/bootloader.h>
 #include <limine.h>
 #include <log.h>
+#include <memory/ptm.h>
 #include <stddef.h>
 #include <stdint.h>
-
-#include "memory/ptm.h"
 
 #define LIMINE_REQUEST [[gnu::used, gnu::section(".limine_requests")]]
 

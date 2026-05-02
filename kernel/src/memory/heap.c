@@ -1,11 +1,10 @@
+#include <assert.h>
+#include <math.h>
 #include <memory/heap.h>
+#include <memory/memory.h>
 #include <memory/slab.h>
 #include <memory/vm.h>
 #include <string.h>
-
-#include "assert.h"
-#include "math.h"
-#include "memory/memory.h"
 
 #define SLAB_8X_COUNT (sizeof(g_slab_8x_sizes) / sizeof(*g_slab_8x_sizes))
 #define SLAB_128X_COUNT (sizeof(g_slab_128x_sizes) / sizeof(*g_slab_128x_sizes))

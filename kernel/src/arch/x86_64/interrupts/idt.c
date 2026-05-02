@@ -1,9 +1,8 @@
 #include <arch/cpu_local.h>
+#include <arch/internal/cr.h>
 #include <arch/interrupts.h>
 #include <common/arch.h>
-
-#include "arch/internal/cr.h"
-#include "memory/memory.h"
+#include <memory/memory.h>
 
 typedef struct [[gnu::packed]] {
     uint16_t limit;

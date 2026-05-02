@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lib/list.h"
+#include <lib/list.h>
 
 typedef struct dw_item dw_item_t;
 

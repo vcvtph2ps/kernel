@@ -3,9 +3,8 @@
 #include <common/boot/bootloader.h>
 #include <log.h>
 #include <memory/memory.h>
+#include <memory/ptm.h>
 #include <tartarus.h>
-
-#include "memory/ptm.h"
 
 tartarus_boot_info_t* g_tartarus_boot_info;
 

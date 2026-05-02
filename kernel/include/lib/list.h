@@ -3,7 +3,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-
 #define LIST_INIT ((list_t) { .count = 0, .head = nullptr, .tail = nullptr })
 
 typedef struct list_node list_node_t;

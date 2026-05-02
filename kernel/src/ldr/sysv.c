@@ -3,9 +3,8 @@
 #include <lib/buffer.h>
 #include <memory/heap.h>
 #include <memory/memory.h>
+#include <memory/vm.h>
 #include <string.h>
-
-#include "memory/vm.h"
 
 typedef enum : uint64_t {
     AUXV_NULL = 0,

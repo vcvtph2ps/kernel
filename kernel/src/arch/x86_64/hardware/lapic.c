@@ -3,6 +3,7 @@
 #include <arch/internal/cpuid.h>
 #include <arch/msr.h>
 #include <assert.h>
+#include <common/arch.h>
 #include <common/boot/bootloader.h>
 #include <common/io.h>
 #include <log.h>
@@ -10,7 +11,6 @@
 #include <memory/vm.h>
 #include <stdint.h>
 
-#include "common/arch.h"
 
 // lapic registers
 #define LAPIC_ID 0x20

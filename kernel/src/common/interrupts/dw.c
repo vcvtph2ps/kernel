@@ -1,11 +1,10 @@
+#include <arch/cpu_local.h>
 #include <assert.h>
 #include <common/arch.h>
 #include <common/interrupts/dw.h>
 #include <common/sched/sched.h>
+#include <list.h>
 #include <memory/slab.h>
-
-#include "arch/cpu_local.h"
-#include "list.h"
 
 static slab_cache_t* g_dw_item_cache;
 
