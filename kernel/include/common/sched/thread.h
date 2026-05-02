@@ -11,6 +11,7 @@ typedef struct scheduler scheduler_t; // NOLINT
 enum thread_state {
     THREAD_STATE_READY,
     THREAD_STATE_RUNNING,
+    THREAD_STATE_BLOCKED,
     THREAD_STATE_DEAD
 };
 
@@ -23,6 +24,7 @@ struct thread {
 
     list_node_t list_node_sched;
     list_node_t list_node_proc;
+    list_node_t list_node_wait_queue;
 
     bool in_interrupt_handler;
 
