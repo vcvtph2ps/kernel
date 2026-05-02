@@ -15,6 +15,8 @@ struct process {
     list_t threads;
     fd_store_t* fd_store;
     vfs_node_t* cwd;
+    uint32_t process_group_pid;
+    list_node_t process_list_node;
 };
 
 /**
@@ -37,3 +39,10 @@ process_t* process_create_empty();
  * @return A pointer to the newly created process, or NULL on failure
  */
 process_t* process_create(vm_address_space_t* address_space, virt_addr_t entry, virt_addr_t user_stack);
+
+/**
+ * @brief Get a process by its PID
+ * @param pid The PID of the process to find
+ * @return A pointer to the process with the given PID, or NULL if no such process exists
+ */
+process_t* process_get_by_pid(uint32_t pid);
