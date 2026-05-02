@@ -79,6 +79,8 @@ typedef struct {
     size_t cpu_count;
     size_t module_count;
 
+    uint64_t boot_timestamp;
+
     // you prob shouldn't call these functions
     fn_bootloader_get_framebuffer_info internal_get_framebuffer_info;
     fn_bootloader_set_framebuffer_address internal_set_framebuffer_address;

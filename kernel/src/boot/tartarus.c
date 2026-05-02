@@ -122,6 +122,7 @@ void kmain_tartarus(tartarus_boot_info_t* boot_info, uint16_t version) {
     g_bootloader_info.cpu_count = boot_info->cpu_count;
     g_bootloader_info.module_count = boot_info->module_count;
     g_bootloader_info.framebuffer_count = boot_info->framebuffer_count;
+    g_bootloader_info.boot_timestamp = boot_info->boot_timestamp;
 
     g_bootloader_info.internal_get_framebuffer_info = bootloader_tartarus_get_framebuffer_info;
     g_bootloader_info.internal_get_mmap_entry = bootloader_tartarus_get_mmap_entry;

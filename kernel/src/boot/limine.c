@@ -29,6 +29,11 @@ LIMINE_REQUEST volatile struct limine_rsdp_request g_rsdp_request = {
     .revision = 0,
 };
 
+LIMINE_REQUEST volatile struct limine_date_at_boot_request g_boottime_request = {
+    .id = LIMINE_DATE_AT_BOOT_REQUEST_ID,
+    .revision = 0,
+};
+
 LIMINE_REQUEST volatile struct limine_internal_module g_initramfs = {
     .path = "initramfs.rdk",
     .string = "initramfs.rdk",
@@ -154,6 +159,7 @@ void kmain_limine(void) {
     g_bootloader_info.framebuffer_count = g_framebuffer_request.response ? g_framebuffer_request.response->framebuffer_count : 0;
     g_bootloader_info.cpu_count = g_mp_request.response ? g_mp_request.response->cpu_count : 1;
     g_bootloader_info.module_count = g_module_request.response ? g_module_request.response->module_count : 0;
+    g_bootloader_info.boot_timestamp = g_boottime_request.response->timestamp;
 
     g_bootloader_info.internal_get_framebuffer_info = bootloader_limine_get_framebuffer_info;
     g_bootloader_info.internal_get_mmap_entry = bootloader_limine_get_mmap_entry;
