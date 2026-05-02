@@ -20,11 +20,17 @@ typedef enum : uint64_t {
     SYSCALL_WRITE = 23,
     SYSCALL_SEEK = 24,
     SYSCALL_ISATTY = 25,
+    SYSCALL_GET_CWD = 26,
+
+    SYSCALL_FUTEX = 30,
+    SYSCALL_GET_CLOCK = 31,
+    SYSCALL_GET_PROCESS_INFO = 32,
 
     SYSCALL_HIGHEST_NR
 } syscall_nr_t;
 
 typedef enum : int64_t {
+    SYSCALL_ERROR_AGAIN = 11, // Try again (EAGAIN)
     SYSCALL_ERROR_NOENT = 2, // No such file or directory
     SYSCALL_ERROR_NOMEM = 12, // Out of memory
     SYSCALL_ERROR_FAULT = 14, // Bad address
@@ -34,6 +40,7 @@ typedef enum : int64_t {
     SYSCALL_ERROR_ROFS = 30, // Read-only file system
     SYSCALL_ERROR_RANGE = 34, // Out of range
     SYSCALL_ERROR_BADFD = 77, // Bad file descriptor
+    SYSCALL_ERROR_TIMEDOUT = 110, // Connection timed out (ETIMEDOUT)
 } syscall_err_t;
 
 typedef struct [[gnu::packed]] {

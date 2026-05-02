@@ -3,6 +3,8 @@
 #include <common/sched/sched.h>
 #include <common/sched/thread.h>
 #include <common/userspace/syscall.h>
+#include <common/userspace/syscalls/sys_clock.h>
+#include <common/userspace/syscalls/sys_futex.h>
 #include <common/userspace/syscalls/sys_mem.h>
 #include <common/userspace/syscalls/sys_proc.h>
 #include <common/userspace/syscalls/sys_vfs.h>
@@ -32,6 +34,7 @@ const char* userspace_syscall_number_to_string(syscall_nr_t nr) {
         case SYSCALL_WRITE:      return "SYS_WRITE";
         case SYSCALL_SEEK:       return "SYS_SEEK";
         case SYSCALL_ISATTY:     return "SYS_ISATTY";
+        case SYSCALL_FUTEX:      return "SYS_FUTEX";
         default:                 return "Unknown syscall";
     }
 }
@@ -47,6 +50,7 @@ const char* userspace_syscall_ret_to_string(syscall_ret_t ret) {
         case SYSCALL_ERROR_ROFS:  return "ERROR_ROFS";
         case SYSCALL_ERROR_RANGE: return "ERROR_RANGE";
         case SYSCALL_ERROR_BADFD: return "ERROR_BADFD";
+        case SYSCALL_ERROR_AGAIN: return "ERROR_AGAIN";
         default:                  arch_panic("Unknown syscall error code: %lu", ret.err);
     }
 }
@@ -80,6 +84,7 @@ void arch_syscall_init();
 
 void syscall_init() {
     arch_syscall_init();
+    sys_futex_init();
 
     for(size_t i = 0; i < SYSCALL_HIGHEST_NR; i++) { g_syscall_table[i].handler = syscall_sys_invalid; }
 
@@ -97,6 +102,11 @@ void syscall_init() {
     SYSCALL_DISPATCHER(SYSCALL_WRITE, syscall_sys_write);
     SYSCALL_DISPATCHER(SYSCALL_SEEK, syscall_sys_seek);
     SYSCALL_DISPATCHER(SYSCALL_ISATTY, syscall_sys_is_a_tty);
+    SYSCALL_DISPATCHER(SYSCALL_GET_CWD, syscall_sys_get_cwd);
+
+    SYSCALL_DISPATCHER(SYSCALL_FUTEX, syscall_sys_futex);
+    SYSCALL_DISPATCHER(SYSCALL_GET_CLOCK, syscall_sys_get_clock);
+    SYSCALL_DISPATCHER(SYSCALL_GET_PROCESS_INFO, syscall_sys_get_process_info);
 }
 
 bool userspace_validate_buffer(process_t* proc, virt_addr_t addr, size_t size) {

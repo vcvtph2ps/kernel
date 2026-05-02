@@ -10,6 +10,7 @@
 #include <common/sched/sched.h>
 #include <common/sched/thread.h>
 #include <common/userspace/process.h>
+#include <common/userspace/syscalls/sys_futex.h>
 #include <helpers.h>
 #include <list.h>
 #include <memory/heap.h>
@@ -44,6 +45,8 @@ extern void x86_64_userspace_init_sysexit();
 
 static void sched_timer_handler(arch_interrupts_frame_t* frame) {
     (void) frame;
+
+    sys_futex_check_timeouts();
     CPU_LOCAL_WRITE(preempt.yield_pending, true);
 }
 

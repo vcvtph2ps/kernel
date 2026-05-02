@@ -33,4 +33,10 @@ struct thread {
         virt_addr_t address;
         dw_item_t dw_item;
     } vm_fault;
+
+    uint64_t timeout_deadline_ns;
+    bool timed_out;
+    bool timeout_in_list;
+    void* timeout_ctx;
+    list_node_t list_node_timeout;
 };

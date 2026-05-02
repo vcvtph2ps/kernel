@@ -1,8 +1,7 @@
+#include <arch/cpu_local.h>
 #include <assert.h>
 #include <common/userspace/syscall.h>
 #include <log.h>
-
-#include "arch/cpu_local.h"
 
 #define PROT_NONE 0x00
 #define PROT_READ 0x01

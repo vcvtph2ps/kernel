@@ -25,11 +25,11 @@ process_t* process_create_empty() {
     process->fd_store = fd_store_create();
 
     vfs_result_t res;
-    res = fd_store_open_fixed(process->fd_store, &VFS_MAKE_ABS_PATH("/hello.txt"), 0);
+    res = fd_store_open_fixed(process->fd_store, &VFS_MAKE_ABS_PATH("/dev/tty"), 0);
     assert(res == VFS_RESULT_OK);
-    res = fd_store_open_fixed(process->fd_store, &VFS_MAKE_ABS_PATH("/hello.txt"), 1);
+    res = fd_store_open_fixed(process->fd_store, &VFS_MAKE_ABS_PATH("/dev/tty"), 1);
     assert(res == VFS_RESULT_OK);
-    res = fd_store_open_fixed(process->fd_store, &VFS_MAKE_ABS_PATH("/hello.txt"), 2);
+    res = fd_store_open_fixed(process->fd_store, &VFS_MAKE_ABS_PATH("/dev/tty"), 2);
     assert(res == VFS_RESULT_OK);
 
     res = vfs_root(&process->cwd);

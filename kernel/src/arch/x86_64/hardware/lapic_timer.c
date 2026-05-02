@@ -17,7 +17,7 @@
 uint32_t lapic_read(uint32_t reg);
 uint32_t lapic_write(uint32_t reg, uint32_t value);
 
-uint32_t g_ticks_per_us = 0;
+static uint32_t g_lapic_timer_ticks_per_us = 0;
 
 void lapic_timer_init_bsp() {
     lapic_write(LAPIC_TIMER_DIV, 0x3);
@@ -26,9 +26,9 @@ void lapic_timer_init_bsp() {
     arch_pit_sleep_us(10000);
 
     uint32_t elapsed = 0xFFFFFFFF - lapic_read(LAPIC_TIMER_CUR_COUNT);
-    g_ticks_per_us = elapsed / 10000ull;
+    g_lapic_timer_ticks_per_us = elapsed / 10000ull;
 
-    LOG_OKAY("apic timer calibrated: %d ticks/us\n", g_ticks_per_us);
+    LOG_OKAY("apic timer calibrated: %d ticks/us\n", g_lapic_timer_ticks_per_us);
 }
 
 void lapic_timer_init_ap() {
@@ -38,7 +38,7 @@ void lapic_timer_init_ap() {
 void arch_lapic_timer_oneshot_us(uint32_t microseconds) {
     lapic_write(LAPIC_TIMER_DIV, 0x3);
     lapic_write(LAPIC_LVT_TIMER, 0x20);
-    uint32_t ticks = (uint32_t) (microseconds * g_ticks_per_us);
+    uint32_t ticks = (uint32_t) (microseconds * g_lapic_timer_ticks_per_us);
     lapic_write(LAPIC_TIMER_INIT_COUNT, ticks);
 }
 

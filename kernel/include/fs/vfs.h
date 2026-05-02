@@ -220,3 +220,4 @@ vfs_result_t vfs_attr(vfs_path_t* path, vfs_node_attr_t* attr);
 vfs_result_t vfs_path_to(vfs_node_t* node, char** out_buf, size_t* out_size);
 
 extern const vfs_ops_t g_vfs_rdsk_ops;
+extern const vfs_ops_t g_vfs_devfs_ops;

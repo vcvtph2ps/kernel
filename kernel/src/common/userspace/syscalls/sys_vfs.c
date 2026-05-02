@@ -2,9 +2,8 @@
 #include <common/userspace/syscall.h>
 #include <fs/vfs.h>
 #include <log.h>
+#include <memory/heap.h>
 #include <string.h>
-
-#include "memory/heap.h"
 
 #define O_RDONLY 0
 #define O_WRONLY 1
@@ -33,7 +32,7 @@ syscall_ret_t syscall_sys_open(syscall_args_t args) {
     LOG_STRC("syscall_sys_open: pid=%lu, pathname=%s\n", CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid, pathname);
 
     vfs_node_t* node;
-    if(vfs_lookup(&VFS_MAKE_ABS_PATH(pathname), &node) != VFS_RESULT_OK) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_NOENT); }
+    if(vfs_lookup(&VFS_MAKE_REL_PATH(CPU_LOCAL_GET_CURRENT_THREAD()->common.process->cwd, pathname), &node) != VFS_RESULT_OK) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_NOENT); }
 
     fd_store_t* store = CPU_LOCAL_GET_CURRENT_THREAD()->common.process->fd_store;
     fd_data_t* fd_data = (fd_data_t*) heap_alloc(sizeof(fd_data_t));
@@ -102,13 +101,6 @@ syscall_ret_t syscall_sys_write(syscall_args_t args) {
     void* kernel_buffer = heap_alloc(count);
     vm_copy_from(kernel_buffer, CPU_LOCAL_GET_CURRENT_THREAD()->common.process->address_space, buf, count);
 
-    // @note: hackkkkk
-    if(fd == 1 || fd == 2) {
-        nl_printf("%.*s", count, kernel_buffer);
-        heap_free(kernel_buffer, count);
-        return SYSCALL_RET_VALUE(count);
-    }
-
     size_t write_count = 0;
     vfs_result_t result = node->node->ops->write(node->node, kernel_buffer, count, node->cursor, &write_count);
 
@@ -167,6 +159,8 @@ syscall_ret_t syscall_sys_seek(syscall_args_t args) {
 
 syscall_ret_t syscall_sys_is_a_tty(syscall_args_t args) {
     uint64_t fd = args.arg1;
+    LOG_STRC("syscall_sys_is_a_tty: pid=%lu, fd=%d\n", CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid, fd);
+
     // @todo: STUB
     fd_store_t* store = CPU_LOCAL_GET_CURRENT_THREAD()->common.process->fd_store;
     fd_data_t* node = fd_store_get_fd(store, fd);
@@ -177,4 +171,25 @@ syscall_ret_t syscall_sys_is_a_tty(syscall_args_t args) {
     if(node->node->type == VFS_NODE_TYPE_CHARDEV) { return SYSCALL_RET_VALUE(0); }
 
     return SYSCALL_RET_ERROR(SYSCALL_ERROR_NOTTY);
+}
+
+syscall_ret_t syscall_sys_get_cwd(syscall_args_t args) {
+    virt_addr_t buf = args.arg1;
+    size_t size = args.arg2;
+
+    LOG_INFO("syscall_sys_get_cwd: buf=%p, size=%lu\n", buf, size);
+    process_t* process = CPU_LOCAL_GET_CURRENT_THREAD()->common.process;
+
+    char* kernel_buf;
+    size_t kernel_buf_size;
+    vfs_result_t res = vfs_path_to(process->cwd, &kernel_buf, &kernel_buf_size);
+    if(res != VFS_RESULT_OK) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT); }
+
+    size_t cwd_len = strlen(kernel_buf) + 1;
+    if(cwd_len > size) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_RANGE); }
+
+    vm_copy_to(process->address_space, buf, kernel_buf, cwd_len);
+
+    heap_free(kernel_buf, kernel_buf_size);
+    return SYSCALL_RET_VALUE(0);
 }

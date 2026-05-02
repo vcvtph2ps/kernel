@@ -114,11 +114,14 @@ void arch_init_bsp() {
 
     mount_initramfs();
 
+    vfs_result_t res = vfs_mount(&g_vfs_devfs_ops, &VFS_MAKE_ABS_PATH("/dev"), nullptr);
+    if(res != VFS_RESULT_OK) { arch_panic("Failed to mount devfs (%d)\n", res); }
+
     vm_address_space_t* process_as = heap_alloc(sizeof(vm_address_space_t));
     ptm_init_user(process_as);
 
     elfldr_elf_loader_info_t* elf_info;
-    bool loaded_elf = elfldr_load_file(process_as, &VFS_MAKE_ABS_PATH("/usr/bin/hello"), &elf_info);
+    bool loaded_elf = elfldr_load_file(process_as, &VFS_MAKE_ABS_PATH("/usr/bin/bash"), &elf_info);
     assert(loaded_elf && "Failed to load init file");
 
     size_t stack_virt_size = 1024 * PAGE_SIZE_DEFAULT;
