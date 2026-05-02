@@ -102,6 +102,9 @@ void arch_init_bsp() {
     arch_fpu_init_bsp();
     LOG_OKAY("FPU INIT OKAY!\n");
 
+    arch_tsc_calibrate();
+    time_init();
+
     cpu_local_init_storage(g_bootloader_info.cpu_count);
     init_aps();
     syscall_init();
@@ -139,6 +142,7 @@ void arch_init_ap(uint32_t core_id) {
     arch_gdt_init_common();
     interrupt_init_ap();
     arch_fpu_init_ap();
+    arch_tsc_calibrate();
 
     ATOMIC_STORE(&g_arch_ap_finished, 1, ATOMIC_RELAXED);
 
