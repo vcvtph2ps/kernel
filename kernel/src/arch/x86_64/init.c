@@ -1,5 +1,7 @@
 #include <arch/hardware/fpu.h>
 #include <arch/hardware/lapic.h>
+#include <arch/hardware/tsc.h>
+#include <common/time.h>
 #include <arch/internal/cpuid.h>
 #include <common/arch.h>
 #include <common/boot/bootloader.h>
