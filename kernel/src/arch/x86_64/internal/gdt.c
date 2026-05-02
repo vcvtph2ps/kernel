@@ -47,6 +47,9 @@ void arch_gdt_init_common() {
     memcpy(gdt, &g_static_gdt, sizeof(arch_gdt_t));
     memset(tss, 0, sizeof(arch_gdt_tss_t));
 
+    virt_addr_t kstack_virt = (virt_addr_t) vm_map_anon(g_vm_global_address_space, VM_NO_HINT, IST_PAGE_COUNT * PAGE_SIZE_DEFAULT, VM_PROT_RW, VM_CACHE_NORMAL, true);
+    tss->rsp0 = kstack_virt + (IST_PAGE_COUNT * PAGE_SIZE_DEFAULT);
+
     virt_addr_t ist1_stack_virt = (virt_addr_t) vm_map_anon(g_vm_global_address_space, VM_NO_HINT, IST_PAGE_COUNT * PAGE_SIZE_DEFAULT, VM_PROT_RW, VM_CACHE_NORMAL, true);
     virt_addr_t ist2_stack_virt = (virt_addr_t) vm_map_anon(g_vm_global_address_space, VM_NO_HINT, IST_PAGE_COUNT * PAGE_SIZE_DEFAULT, VM_PROT_RW, VM_CACHE_NORMAL, true);
     virt_addr_t ist3_stack_virt = (virt_addr_t) vm_map_anon(g_vm_global_address_space, VM_NO_HINT, IST_PAGE_COUNT * PAGE_SIZE_DEFAULT, VM_PROT_RW, VM_CACHE_NORMAL, true);

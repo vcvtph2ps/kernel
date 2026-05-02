@@ -57,5 +57,8 @@ void log_print_nolock(log_level_t log, const char* fmt, ...);
 #define LOG_INFO(fmt, ...)                                                                       \
     do { log_print(LOG_LEVEL_INFO, LOG_COLORIZE("info | ", "96") fmt, ##__VA_ARGS__); } while(0)
 
+#define LOG_DBGL(fmt, ...)                                                                       \
+    do { log_print(LOG_LEVEL_DBGL, LOG_COLORIZE("dbgl | ", "34") fmt, ##__VA_ARGS__); } while(0)
+
 #define LOG_STRC(fmt, ...)                                                                       \
     do { log_print(LOG_LEVEL_STRC, LOG_COLORIZE("strc | ", "95") fmt, ##__VA_ARGS__); } while(0)

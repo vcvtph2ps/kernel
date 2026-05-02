@@ -1,5 +1,7 @@
 #pragma once
+#include <common/interrupts/dw.h>
 #include <lib/list.h>
+#include <memory/memory.h>
 
 typedef enum thread_state thread_state_t;
 typedef struct thread thread_t;
@@ -23,4 +25,10 @@ struct thread {
     list_node_t list_node_proc;
 
     bool in_interrupt_handler;
+
+    struct {
+        bool in_process;
+        virt_addr_t address;
+        dw_item_t dw_item;
+    } vm_fault;
 };

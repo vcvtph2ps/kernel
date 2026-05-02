@@ -1,6 +1,7 @@
 #include <common/sched/sched.h>
 #include <common/sched/thread.h>
 #include <common/userspace/process.h>
+#include <fs/fd_store.h>
 #include <lib/helpers.h>
 #include <log.h>
 #include <memory/heap.h>
@@ -18,6 +19,18 @@ process_t* process_create_empty() {
     process->address_space = nullptr;
     process->thread_list_lock = SPINLOCK_NO_DW_INIT;
     process->threads = LIST_INIT;
+    process->fd_store = fd_store_create();
+
+    vfs_result_t res;
+    res = fd_store_open_fixed(process->fd_store, &VFS_MAKE_ABS_PATH("/hello.txt"), 0);
+    assert(res == VFS_RESULT_OK);
+    res = fd_store_open_fixed(process->fd_store, &VFS_MAKE_ABS_PATH("/hello.txt"), 1);
+    assert(res == VFS_RESULT_OK);
+    res = fd_store_open_fixed(process->fd_store, &VFS_MAKE_ABS_PATH("/hello.txt"), 2);
+    assert(res == VFS_RESULT_OK);
+
+    res = vfs_root(&process->cwd);
+    assert(res == VFS_RESULT_OK);
     return process;
 }
 

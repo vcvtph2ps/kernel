@@ -1,16 +1,17 @@
+#include <arch/internal/cpuid.h>
 #include <arch/internal/cr.h>
 #include <arch/memory.h>
 #include <arch/msr.h>
 #include <assert.h>
+#include <common/arch.h>
 #include <common/boot/bootloader.h>
+#include <common/interrupts/interrupt.h>
+#include <log.h>
 #include <memory/memory.h>
+#include <memory/pmm.h>
 #include <memory/ptm.h>
 #include <memory/vm.h>
 #include <string.h>
-
-#include "arch/internal/cpuid.h"
-#include "log.h"
-#include "memory/pmm.h"
 
 #define VADDR_TO_INDEX(VADDR, LEVEL) (((VADDR) >> ((LEVEL) * 9 + 3)) & 0x1FF)
 #define INDEX_TO_VADDR(INDEX, LEVEL) ((uint64_t) (INDEX) << ((LEVEL) * 9 + 3))
@@ -382,6 +383,15 @@ void map_kernel() {
 }
 static vm_region_t g_hhdm_region;
 
+void page_fault_handler(arch_interrupts_frame_t* frame) {
+    LOG_INFO("page_fault_handler: addr=0x%llx\n", frame->interrupt_data);
+    if(!frame->is_user) { arch_panic_int(frame); }
+    vm_fault_reason_t reason = VM_FAULT_UKKNOWN;
+    if((frame->error & (1 << 0)) == 0) { reason = VM_FAULT_NOT_PRESENT; }
+    if(vm_fault(frame->interrupt_data, reason)) { return; }
+    arch_panic_int(frame);
+}
+
 void ptm_init_kernel_bsp() {
     g_vm_global_address_space = (void*) TO_HHDM(pmm_alloc_page(PMM_FLAG_ZERO));
     g_vm_global_address_space->ptm.tlpt = pmm_alloc_page(PMM_FLAG_ZERO);
@@ -400,7 +410,6 @@ void ptm_init_kernel_bsp() {
     uint64_t* pml4 = (uint64_t*) TO_HHDM(g_vm_global_address_space->ptm.tlpt);
     for(int i = 256; i < 512; i++) { pml4[i] = PAGE_BIT_PRESENT | PAGE_BIT_RW | (pmm_alloc_page(PMM_FLAG_ZERO) & SMALL_PAGE_ADDRESS_MASK); }
     map_kernel();
-
 
     size_t hhdm_size = 0;
     for(size_t i = 0; i < g_bootloader_info.mmap_entry_count; i++) {
@@ -421,7 +430,6 @@ void ptm_init_kernel_bsp() {
 
     ptm_load_address_space(g_vm_global_address_space);
     LOG_OKAY("Loaded ptm address space and didn't page fault!!\n");
-    // vm_map_direct(g_vm_global_address_space, (void*) arch_lapic_get_base_address(), PAGE_SIZE_DEFAULT, VM_PROT_RW, VM_CACHE_DISABLE, FROM_HHDM(arch_lapic_get_base_address()), VM_FLAG_FIXED);
 
     for(size_t i = 0; i < g_bootloader_info.framebuffer_count; i++) {
         bootloader_framebuffer_info_t framebuffer;
@@ -435,6 +443,8 @@ void ptm_init_kernel_bsp() {
         const void* new_vaddr = vm_map_direct(g_vm_global_address_space, VM_NO_HINT, aligned_length, VM_PROT_RW, VM_CACHE_WRITE_COMBINE, aligned_paddr, VM_FLAG_NONE);
         bootloader_set_framebuffer_address(i, (void*) new_vaddr + alignment_diff);
     }
+
+    interrupt_set_handler(0x0E, page_fault_handler);
 }
 
 void ptm_init_kernel_ap() {

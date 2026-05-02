@@ -3,57 +3,57 @@
 #include <common/sched/sched.h>
 #include <common/sched/thread.h>
 #include <common/userspace/syscall.h>
+#include <common/userspace/syscalls/sys_mem.h>
 #include <common/userspace/syscalls/sys_proc.h>
+#include <common/userspace/syscalls/sys_vfs.h>
+#include <memory/ptm.h>
 
 #define SYSTRACE_ENABLED LOG_LEVEL_MIN == LOG_LEVEL_STRC
 
-typedef syscall_ret_t (*fn_syscall_handler0_t)();
-typedef syscall_ret_t (*fn_syscall_handler1_t)(uint64_t);
-typedef syscall_ret_t (*fn_syscall_handler2_t)(uint64_t, uint64_t);
-typedef syscall_ret_t (*fn_syscall_handler3_t)(uint64_t, uint64_t, uint64_t);
-typedef syscall_ret_t (*fn_syscall_handler4_t)(uint64_t, uint64_t, uint64_t, uint64_t);
-typedef syscall_ret_t (*fn_syscall_handler5_t)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
-typedef syscall_ret_t (*fn_syscall_handler6_t)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
+typedef syscall_ret_t (*fn_syscall_handler_t)(syscall_args_t args);
 
 typedef struct {
-    size_t num_params;
-    union {
-        fn_syscall_handler0_t handler0;
-        fn_syscall_handler1_t handler1;
-        fn_syscall_handler2_t handler2;
-        fn_syscall_handler3_t handler3;
-        fn_syscall_handler4_t handler4;
-        fn_syscall_handler5_t handler5;
-        fn_syscall_handler6_t handler6;
-    } handlers;
+    fn_syscall_handler_t handler;
 } syscall_entry_t;
 
-#define MAX_SYSCALL_NUMBER 16
-
-static syscall_entry_t g_syscall_table[MAX_SYSCALL_NUMBER];
+static syscall_entry_t g_syscall_table[SYSCALL_HIGHEST_NR];
 
 const char* userspace_syscall_number_to_string(syscall_nr_t nr) {
     switch(nr) {
-        case SYSCALL_SYS_EXIT: return "SYS_EXIT";
-        default:               return "Unknown syscall";
+        case SYSCALL_SYS_EXIT:   return "SYS_EXIT";
+        case SYSCALL_DEBUG_LOG:  return "SYS_DEBUG_LOG";
+        case SYSCALL_TCB_SET:    return "SYS_TCB_SET";
+        case SYSCALL_VM_MAP:     return "SYS_VM_MAP";
+        case SYSCALL_VM_UNMAP:   return "SYS_VM_UNMAP";
+        case SYSCALL_VM_PROTECT: return "SYS_VM_PROTECT";
+        case SYSCALL_OPEN:       return "SYS_OPEN";
+        case SYSCALL_CLOSE:      return "SYS_CLOSE";
+        case SYSCALL_READ:       return "SYS_READ";
+        case SYSCALL_WRITE:      return "SYS_WRITE";
+        case SYSCALL_SEEK:       return "SYS_SEEK";
+        case SYSCALL_ISATTY:     return "SYS_ISATTY";
+        default:                 return "Unknown syscall";
     }
 }
 
 const char* userspace_syscall_ret_to_string(syscall_ret_t ret) {
     if(!ret.is_error) { return "SUCCESS"; }
     switch(ret.err) {
+        case SYSCALL_ERROR_NOENT: return "ERROR_NOENT";
+        case SYSCALL_ERROR_NOMEM: return "ERROR_NOMEM";
+        case SYSCALL_ERROR_FAULT: return "ERROR_FAULT";
         case SYSCALL_ERROR_INVAL: return "ERROR_INVAL";
+        case SYSCALL_ERROR_SPIPE: return "ERROR_SPIPE";
+        case SYSCALL_ERROR_ROFS:  return "ERROR_ROFS";
+        case SYSCALL_ERROR_RANGE: return "ERROR_RANGE";
+        case SYSCALL_ERROR_BADFD: return "ERROR_BADFD";
         default:                  arch_panic("Unknown syscall error code: %lu", ret.err);
     }
 }
 
-syscall_ret_t syscall_sys_invalid(uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t arg4, uint64_t arg5, uint64_t arg6) {
-    (void) arg1;
-    (void) arg2;
-    (void) arg3;
-    (void) arg4;
-    (void) arg5;
-    (void) arg6;
+syscall_ret_t syscall_sys_invalid(syscall_args_t args) {
+    LOG_INFO("Invalid syscall \"%s\" (0x%llx) invoked with args: %lu, %lu, %lu, %lu, %lu, %lu\n", userspace_syscall_number_to_string(args.syscall_nr), args.syscall_nr, args.arg1, args.arg2, args.arg3, args.arg4, args.arg5, args.arg6);
+    (void) args;
 
     assert(false);
     return SYSCALL_RET_ERROR(SYSCALL_ERROR_INVAL);
@@ -61,37 +61,51 @@ syscall_ret_t syscall_sys_invalid(uint64_t arg1, uint64_t arg2, uint64_t arg3, u
 
 syscall_ret_t dispatch_syscall(uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t arg4, uint64_t arg5, uint64_t arg6, syscall_nr_t syscall_nr) {
     syscall_entry_t entry = g_syscall_table[syscall_nr];
-    assert(entry.num_params <= 6 && "syscall entry has too many parameters");
 
-    syscall_ret_t ret_value;
+    syscall_args_t args;
+    args.syscall_nr = syscall_nr;
+    args.arg1 = arg1;
+    args.arg2 = arg2;
+    args.arg3 = arg3;
+    args.arg4 = arg4;
+    args.arg5 = arg5;
+    args.arg6 = arg6;
 
-    switch(entry.num_params) {
-        case 0:  ret_value = entry.handlers.handler0(); break;
-        case 1:  ret_value = entry.handlers.handler1(arg1); break;
-        case 2:  ret_value = entry.handlers.handler2(arg1, arg2); break;
-        case 3:  ret_value = entry.handlers.handler3(arg1, arg2, arg3); break;
-        case 4:  ret_value = entry.handlers.handler4(arg1, arg2, arg3, arg4); break;
-        case 5:  ret_value = entry.handlers.handler5(arg1, arg2, arg3, arg4, arg5); break;
-        case 6:  ret_value = entry.handlers.handler6(arg1, arg2, arg3, arg4, arg5, arg6); break;
-        default: __builtin_unreachable();
-    }
-
-    return ret_value;
+    return entry.handler(args);
 }
 
-#define SYSCALL_DISPATCHER(nr, __handler, __num_params)             \
-    g_syscall_table[nr].num_params = __num_params;                  \
-    g_syscall_table[nr].handlers.handler##__num_params = __handler;
+#define SYSCALL_DISPATCHER(nr, __handler) g_syscall_table[nr].handler = __handler;
 
 void arch_syscall_init();
 
 void syscall_init() {
     arch_syscall_init();
 
-    for(size_t i = 0; i < MAX_SYSCALL_NUMBER; i++) {
-        g_syscall_table[i].num_params = 6;
-        g_syscall_table[i].handlers.handler6 = syscall_sys_invalid;
+    for(size_t i = 0; i < SYSCALL_HIGHEST_NR; i++) { g_syscall_table[i].handler = syscall_sys_invalid; }
+
+    SYSCALL_DISPATCHER(SYSCALL_SYS_EXIT, syscall_sys_exit);
+    SYSCALL_DISPATCHER(SYSCALL_DEBUG_LOG, syscall_sys_debug_log);
+    SYSCALL_DISPATCHER(SYSCALL_TCB_SET, syscall_sys_set_tcb);
+
+    SYSCALL_DISPATCHER(SYSCALL_VM_MAP, syscall_sys_vm_map);
+    SYSCALL_DISPATCHER(SYSCALL_VM_UNMAP, syscall_sys_vm_unmap);
+    SYSCALL_DISPATCHER(SYSCALL_VM_PROTECT, syscall_sys_vm_protect);
+
+    SYSCALL_DISPATCHER(SYSCALL_OPEN, syscall_sys_open);
+    SYSCALL_DISPATCHER(SYSCALL_CLOSE, syscall_sys_close);
+    SYSCALL_DISPATCHER(SYSCALL_READ, syscall_sys_read);
+    SYSCALL_DISPATCHER(SYSCALL_WRITE, syscall_sys_write);
+    SYSCALL_DISPATCHER(SYSCALL_SEEK, syscall_sys_seek);
+    SYSCALL_DISPATCHER(SYSCALL_ISATTY, syscall_sys_is_a_tty);
+}
+
+bool userspace_validate_buffer(process_t* proc, virt_addr_t addr, size_t size) {
+    if(addr < proc->address_space->start || addr + size > proc->address_space->end) { return false; }
+
+    for(virt_addr_t i = addr; i < addr + size; i += PAGE_SIZE_DEFAULT) {
+        phys_addr_t phys;
+        if(!ptm_physical(proc->address_space, i, &phys)) { return false; }
     }
 
-    SYSCALL_DISPATCHER(SYSCALL_SYS_EXIT, syscall_sys_exit, 1);
+    return true;
 }

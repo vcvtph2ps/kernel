@@ -1,8 +1,9 @@
 #pragma once
+#include <fs/fd_store.h>
+#include <fs/vfs.h>
 #include <lib/list.h>
 #include <memory/vm.h>
-
-#include "spinlock.h"
+#include <spinlock.h>
 
 typedef struct process process_t;
 
@@ -12,6 +13,8 @@ struct process {
 
     spinlock_no_dw_t thread_list_lock;
     list_t threads;
+    fd_store_t* fd_store;
+    vfs_node_t* cwd;
 };
 
 /**
