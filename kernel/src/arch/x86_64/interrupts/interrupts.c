@@ -46,8 +46,9 @@ void x86_64_dispatch_interrupt(arch_interrupts_frame_t* frame) {
         dw_status_disable();
     }
 
-    if(frame->vector < 0x20) { arch_panic_int(frame); }
-    if(g_handlers[frame->vector] != nullptr) g_handlers[frame->vector](frame->vector);
+    if(g_handlers[frame->vector] == nullptr && frame->vector < 0x20) { arch_panic_int(frame); }
+
+    if(g_handlers[frame->vector] != nullptr) g_handlers[frame->vector](frame);
     if(frame->vector >= 32) arch_lapic_eoi();
 
     if(is_threaded) {

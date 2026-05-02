@@ -1,6 +1,8 @@
+#pragma once
+#include <arch/interrupts.h>
 #include <stdint.h>
 
-typedef void (*interrupt_handler_fn_t)(uint8_t vector);
+typedef void (*interrupt_handler_fn_t)(arch_interrupts_frame_t* frame);
 
 /**
  * @brief Initialize the interrupt system. This should be called once during the early init of the kernel
