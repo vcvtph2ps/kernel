@@ -116,7 +116,7 @@ virt_addr_t sysv_user_stack_init(vm_address_space_t* address_space, virt_addr_t 
 
 
     uintptr_t stack_pointer = ALIGN_DOWN(user_stack_top - (stack_buf->size), 16);
-    LOG_INFO("stack_pointer: %p\n", (void*) stack_pointer);
+    LOG_STRC("stack_pointer=%p\n", (void*) stack_pointer);
     vm_copy_to(address_space, stack_pointer, (void*) stack_buf->data, stack_buf->size);
 
     return stack_pointer;

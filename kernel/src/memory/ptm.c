@@ -384,7 +384,7 @@ void map_kernel() {
 static vm_region_t g_hhdm_region;
 
 void page_fault_handler(arch_interrupts_frame_t* frame) {
-    LOG_INFO("page_fault_handler: addr=0x%llx\n", frame->interrupt_data);
+    LOG_STRC("addr=0x%llx\n", frame->interrupt_data);
     if(!frame->is_user) { arch_panic_int(frame); }
     vm_fault_reason_t reason = VM_FAULT_UKKNOWN;
     if((frame->error & (1 << 0)) == 0) { reason = VM_FAULT_NOT_PRESENT; }

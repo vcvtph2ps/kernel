@@ -61,7 +61,7 @@ syscall_ret_t syscall_sys_vm_protect(syscall_args_t args) {
 
     process_t* current_process = CPU_LOCAL_GET_CURRENT_THREAD()->common.process;
 
-    LOG_INFO("addr=%p size=%zu prot=%zu\n", addr, size, prot);
+    LOG_STRC("addr=%p size=%zu prot=%zu\n", addr, size, prot);
 
     vm_rewrite_prot(current_process->address_space, (void*) addr, size, vm_prot);
     return SYSCALL_RET_VALUE(0);

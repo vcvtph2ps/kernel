@@ -153,7 +153,7 @@ syscall_ret_t syscall_sys_seek(syscall_args_t args) {
         return SYSCALL_RET_ERROR(SYSCALL_ERROR_INVAL);
     }
 
-    LOG_INFO("new_cursor=%ld, file size=%ld\n", new_cursor, signed_file_size);
+    LOG_STRC("new_cursor=%ld, file size=%ld\n", new_cursor, signed_file_size);
     if(new_cursor < 0 || new_cursor > signed_file_size) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_RANGE); }
     node->cursor = new_cursor;
 
@@ -180,7 +180,7 @@ syscall_ret_t syscall_sys_get_cwd(syscall_args_t args) {
     virt_addr_t buf = args.arg1;
     size_t size = args.arg2;
 
-    LOG_INFO("buf=%p, size=%lu\n", buf, size);
+    LOG_STRC("buf=%p, size=%lu\n", buf, size);
     process_t* process = CPU_LOCAL_GET_CURRENT_THREAD()->common.process;
 
     char* kernel_buf;
@@ -227,7 +227,7 @@ syscall_ret_t syscall_sys_stat(syscall_args_t args) {
     uint64_t fd = args.arg1;
     virt_addr_t statbuf = args.arg2;
 
-    LOG_INFO("pid=%lu, fd=%d\n", CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid, fd);
+    LOG_STRC("pid=%lu, fd=%d\n", CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid, fd);
     if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, statbuf, sizeof(structs_stat_t))) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT); }
 
     fd_store_t* store = CPU_LOCAL_GET_CURRENT_THREAD()->common.process->fd_store;
@@ -253,7 +253,7 @@ syscall_ret_t syscall_sys_stat_at(uint64_t fd, uint64_t path, size_t path_len, u
     vm_copy_from(pathname, CPU_LOCAL_GET_CURRENT_THREAD()->common.process->address_space, path, path_len);
     pathname[path_len] = '\0';
     process_t* process = CPU_LOCAL_GET_CURRENT_THREAD()->common.process;
-    LOG_INFO("pid=%lu, fd=%d, path=%s\n", process->pid, fd, pathname);
+    LOG_STRC("pid=%lu, fd=%d, path=%s\n", process->pid, fd, pathname);
 
     vfs_path_t vfs_path;
 

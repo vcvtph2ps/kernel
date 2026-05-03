@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "log.h"
+
 typedef struct {
     unsigned char e_ident[16];
     uint16_t e_type;
@@ -81,22 +83,22 @@ bool internal_allocate_for_image(vm_address_space_t* address_space, const elf64_
         }
     }
 
-    LOG_INFO("lowest_address = 0x%lx, highest_address = 0x%lx\n", allocation.image_start_address, allocation.image_end_address);
+    LOG_STRC("lowest_address = 0x%lx, highest_address = 0x%lx\n", allocation.image_start_address, allocation.image_end_address);
 
     uintptr_t target_allocation = allocation.image_start_address + allocation.image_offset;
     size_t image_size = ALIGN_UP((allocation.image_end_address - allocation.image_start_address), PAGE_SIZE_DEFAULT);
-    LOG_INFO("target_allocation = 0x%lx, image_size = 0x%lx\n", target_allocation, image_size);
+    LOG_STRC("target_allocation = 0x%lx, image_size = 0x%lx\n", target_allocation, image_size);
 
     if(elf_header->e_type == ETYPE_DYN) {
         uintptr_t allocated = (virt_addr_t) vm_map_anon(address_space, VM_NO_HINT, image_size, VM_PROT_RW, VM_CACHE_NORMAL, VM_FLAG_ZERO);
         assert(allocated != 0 && "Failed to allocate memory for elf image");
         allocation.image_offset = allocated;
     } else {
-        LOG_INFO("target_allocation = 0x%lx\n", target_allocation);
+        LOG_STRC("target_allocation = 0x%lx\n", target_allocation);
         virt_addr_t result_vaddr = (virt_addr_t) vm_map_anon(address_space, (void*) target_allocation, image_size, VM_PROT_RW, VM_CACHE_NORMAL, VM_FLAG_ZERO | VM_FLAG_FIXED);
         assert(result_vaddr != 0 && "Failed to allocate memory for elf image");
     }
-    LOG_INFO("image_slide = 0x%lx, image_size = 0x%lx\n", allocation.image_offset, image_size);
+    LOG_STRC("image_slide = 0x%lx, image_size = 0x%lx\n", allocation.image_offset, image_size);
 
     out_allocation->image_start_address = allocation.image_start_address;
     out_allocation->image_end_address = allocation.image_end_address;
@@ -122,7 +124,7 @@ void internal_elf_handle_pt_load(vm_address_space_t* address_space, vfs_path_t* 
 bool internal_elf_handle_pt_interp(vm_address_space_t* address_space, vfs_path_t* path, elf64_program_header_t* phdr, elfldr_elf_loader_info_t* loader_info) {
     virt_addr_t phdr_data = (virt_addr_t) heap_alloc(phdr->p_filesz);
     assert(vfs_read(path, (void*) phdr_data, phdr->p_filesz, phdr->p_offset, nullptr) == VFS_RESULT_OK && "Failed to read program header data");
-    LOG_INFO("interpreter: %s\n", (const char*) phdr_data);
+    LOG_STRC("interpreter: %s\n", (const char*) phdr_data);
 
     elfldr_elf_loader_info_t* interp_loader_info;
     if(!elfldr_load_file(address_space, &VFS_MAKE_ABS_PATH((const char*) phdr_data), &interp_loader_info)) {
@@ -145,8 +147,8 @@ bool internal_elf_load_image(vm_address_space_t* address_space, const elf64_elf_
     elf64_program_header_t* phdr_cache = heap_alloc(sizeof(elf64_program_header_t) * elf_header->e_phnum);
     for(size_t i = 0; i < elf_header->e_phnum; i++) {
         assert(vfs_read(path, &phdr_cache[i], sizeof(elf64_program_header_t), elf_header->e_phoff + i * elf_header->e_phentsize, nullptr) == VFS_RESULT_OK && "Failed to read program header");
-        LOG_INFO("phdr[%d].p_type = 0x%lx\n", i, phdr_cache[i].p_type);
-        LOG_INFO("phdr[%d].p_vaddr = 0x%lx, p_memsz = 0x%lx, p_filesz = 0x%lx\n", i, phdr_cache[i].p_vaddr, phdr_cache[i].p_memsz, phdr_cache[i].p_filesz);
+        LOG_STRC("phdr[%d].p_type = 0x%lx\n", i, phdr_cache[i].p_type);
+        LOG_STRC("phdr[%d].p_vaddr = 0x%lx, p_memsz = 0x%lx, p_filesz = 0x%lx\n", i, phdr_cache[i].p_vaddr, phdr_cache[i].p_memsz, phdr_cache[i].p_filesz);
     }
 
     // allocate image memory
@@ -171,7 +173,7 @@ bool internal_elf_load_image(vm_address_space_t* address_space, const elf64_elf_
     // load phdrs
     for(size_t i = 0; i < elf_header->e_phnum; i++) {
         if(phdr_cache[i].p_type != PTYPE_LOAD && phdr_cache[i].p_type != PTYPE_INTERP) { continue; }
-        LOG_INFO("Loading segment %zu: vaddr=0x%lx, size=%zu\n", i, allocation.image_offset + phdr_cache[i].p_vaddr, phdr_cache[i].p_filesz);
+        LOG_STRC("Loading segment %zu: vaddr=0x%lx, size=%zu\n", i, allocation.image_offset + phdr_cache[i].p_vaddr, phdr_cache[i].p_filesz);
         if(phdr_cache[i].p_type == PTYPE_LOAD) internal_elf_handle_pt_load(address_space, path, &phdr_cache[i], &allocation);
         if(phdr_cache[i].p_type == PTYPE_INTERP) {
             if(!internal_elf_handle_pt_interp(address_space, path, &phdr_cache[i], loader_info)) {

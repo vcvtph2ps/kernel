@@ -66,24 +66,6 @@ void mount_initramfs() {
     vfs_node_t* root_node;
     res = vfs_root(&root_node);
     if(res != VFS_RESULT_OK) { arch_panic("Failed to get root node (%d)\n", res); }
-
-    size_t offset = 0;
-    while(1) {
-        char* dirent_name;
-        res = root_node->ops->readdir(root_node, &offset, &dirent_name);
-        if(res == VFS_RESULT_ERR_NOT_FOUND) { break; }
-        assertf(res == VFS_RESULT_OK, "Failed to readdir %d", res);
-        if(dirent_name == nullptr) { break; }
-
-        vfs_node_t* dirent;
-        res = root_node->ops->lookup(root_node, dirent_name, &dirent);
-        assertf(res == VFS_RESULT_OK, "Failed to lookup dirent %d", res);
-
-        vfs_node_attr_t attr;
-        res = dirent->ops->attr(dirent, &attr);
-        assertf(res == VFS_RESULT_OK, "Failed to get dirent attr %d", res);
-        LOG_INFO("%s: %s %d bytes\n", dirent->type == VFS_NODE_TYPE_DIR ? "dir" : "file", dirent_name, attr.size);
-    }
 }
 
 void arch_init_bsp() {

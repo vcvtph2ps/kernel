@@ -38,7 +38,7 @@ uacpi_status uacpi_kernel_get_rsdp(uacpi_phys_addr* out_rsdp_address) {
  *              to uACPI.
  */
 void* uacpi_kernel_map(uacpi_phys_addr paddr, uacpi_size length) {
-    LOG_INFO("mapping addr=%p, length=%zu\n", paddr, length);
+    LOG_STRC("mapping addr=%p, length=%zu\n", paddr, length);
     const uacpi_phys_addr aligned_paddr = ALIGN_DOWN(paddr, PAGE_SIZE_DEFAULT);
     const uacpi_size alignment_diff = paddr - aligned_paddr;
     const uacpi_size aligned_length = ALIGN_UP(length + alignment_diff, PAGE_SIZE_DEFAULT);
@@ -57,7 +57,7 @@ void* uacpi_kernel_map(uacpi_phys_addr paddr, uacpi_size length) {
  *       as well as its true length.
  */
 void uacpi_kernel_unmap(void* addr, uacpi_size length) {
-    LOG_INFO("unmapping addr=%p, length=%zu\n", addr, length);
+    LOG_STRC("unmapping addr=%p, length=%zu\n", addr, length);
     const uintptr_t aligned_addr = ALIGN_DOWN(addr, PAGE_SIZE_DEFAULT);
     const uacpi_size alignment_diff = (uintptr_t) addr - aligned_addr;
     const uacpi_size aligned_length = ALIGN_UP(length + alignment_diff, PAGE_SIZE_DEFAULT);
@@ -78,8 +78,8 @@ void uacpi_kernel_vlog(uacpi_log_level level, const uacpi_char* fmt, uacpi_va_li
     switch(level) {
         case UACPI_LOG_ERROR: nl_printf(LOG_COLORIZE("fail |", "91") " uacpi: "); break;
         case UACPI_LOG_WARN:  nl_printf(LOG_COLORIZE("warn |", "93") " uacpi: "); break;
-        case UACPI_LOG_DEBUG: [[fallthrough]];
-        case UACPI_LOG_TRACE: [[fallthrough]];
+        case UACPI_LOG_DEBUG: nl_printf(LOG_COLORIZE("dbgl |", "34") " uacpi: "); break;
+        case UACPI_LOG_TRACE: nl_printf(LOG_COLORIZE("strc |", "95") " uacpi: "); break;
         case UACPI_LOG_INFO:  nl_printf(LOG_COLORIZE("info |", "96") " uacpi: "); break;
     }
     nl_vprintf(fmt, args);
