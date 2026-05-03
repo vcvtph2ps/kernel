@@ -1,5 +1,6 @@
 #pragma once
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -13,6 +14,20 @@ typedef enum {
 } log_level_t;
 
 #define LOG_LEVEL_MIN LOG_LEVEL_STRC
+
+typedef void (*log_sink_func_t)(const char* msg, void* ctx);
+
+typedef struct log_sink {
+    log_level_t min_level;
+    log_sink_func_t write;
+    void* ctx;
+} log_sink_t;
+
+/**
+ * @brief Registers a new log sink dynamically.
+ * @return True if the sink was added successfully, false otherwise (e.g. if too many sinks).
+ */
+bool log_add_sink(const log_sink_t* sink);
 
 /**
  * @brief Initializes the logging system. This should be called once during early initialization before any calls to log_print or the LOG_* macros.
