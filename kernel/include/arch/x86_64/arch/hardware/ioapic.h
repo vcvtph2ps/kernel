@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 /**
- * @brief Initializes the IOAPIC on the BSP. This should be called once during early initialization
+ * @brief Initializes the IOAPIC. This should be called once during early initialization
  */
 void arch_ioapic_init_bsp();
 

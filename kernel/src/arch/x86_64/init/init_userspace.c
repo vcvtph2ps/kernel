@@ -1,32 +1,37 @@
-#include "init_stages.h"
-#include <common/tty.h>
-#include <common/userspace/syscall.h>
-#include <common/sched/sched.h>
-#include <common/boot/bootloader.h>
 #include <common/arch.h>
+#include <common/boot/bootloader.h>
+#include <common/init.h>
+#include <common/sched/sched.h>
+#include <common/tty.h>
+#include <common/userspace/process.h>
+#include <common/userspace/syscall.h>
 #include <fs/vfs.h>
-#include <memory/heap.h>
-#include <memory/ptm.h>
-#include <memory/vm.h>
-#include <memory/memory.h>
 #include <ldr/elfldr.h>
 #include <ldr/sysv.h>
-#include <common/userspace/process.h>
 #include <lib/log.h>
+#include <memory/heap.h>
+#include <memory/memory.h>
+#include <memory/ptm.h>
+#include <memory/vm.h>
 
-void fn_init_stage_arch_userspace(uint32_t core_id) {
-    (void) core_id;
-    g_tty = tty_init();
+void init_stage_arch_userspace(uint32_t core_id) {
+    if(INIT_CORE_IS_BSP(core_id)) {
+        g_tty = tty_init();
+    }
+
     syscall_init();
-    sched_init_bsp();
+    sched_init(core_id);
 }
 
-void fn_init_stage_vfs(uint32_t core_id) {
-    (void) core_id;
+void init_stage_vfs(uint32_t core_id) {
+    if(!INIT_CORE_IS_BSP(core_id)) {
+        return;
+    }
+
     for(size_t i = 0; i < g_bootloader_info.module_count; i++) {
         bootloader_module_t module = {};
         if(!bootloader_get_module(i, &module)) {
-            // @todo: fixme assert(false)
+            assert(false);
             continue;
         }
         LOG_INFO("Module %zu: %s, address: %p, size: %zu\n", i, module.path, module.address, module.size);
@@ -34,28 +39,41 @@ void fn_init_stage_vfs(uint32_t core_id) {
 
     bootloader_module_t initramfs_module;
     bool found_initramfs = bootloader_find_module("/boot/initramfs.rdk", &initramfs_module);
-    if(!found_initramfs) { arch_panic("Failed to find initramfs\n"); }
+    if(!found_initramfs) {
+        arch_panic("Failed to find initramfs\n");
+    }
 
     vfs_result_t res = vfs_mount(&g_vfs_rdsk_ops, nullptr, (void*) initramfs_module.address);
-    if(res != VFS_RESULT_OK) { arch_panic("Failed to mount initramfs (%d)\n", res); }
+    if(res != VFS_RESULT_OK) {
+        arch_panic("Failed to mount initramfs (%d)\n", res);
+    }
     LOG_OKAY("mounted initramfs\n");
 
     vfs_node_t* root_node;
     res = vfs_root(&root_node);
-    if(res != VFS_RESULT_OK) { arch_panic("Failed to get root node (%d)\n", res); }
+    if(res != VFS_RESULT_OK) {
+        arch_panic("Failed to get root node (%d)\n", res);
+    }
 
     res = vfs_mount(&g_vfs_devfs_ops, &VFS_MAKE_ABS_PATH("/dev"), nullptr);
-    if(res != VFS_RESULT_OK) { arch_panic("Failed to mount devfs (%d)\n", res); }
+    if(res != VFS_RESULT_OK) {
+        arch_panic("Failed to mount devfs (%d)\n", res);
+    }
 }
 
-void fn_init_stage_userspace(uint32_t core_id) {
-    (void) core_id;
+void init_stage_userspace(uint32_t core_id) {
+    if(!INIT_CORE_IS_BSP(core_id)) {
+        return;
+    }
+
     vm_address_space_t* process_as = heap_alloc(sizeof(vm_address_space_t));
     ptm_init_user(process_as);
 
     elfldr_elf_loader_info_t* elf_info;
     bool loaded_elf = elfldr_load_file(process_as, &VFS_MAKE_ABS_PATH("/usr/bin/bash"), &elf_info);
-    if (!loaded_elf) { arch_panic("Failed to load init file"); }
+    if(!loaded_elf) {
+        arch_panic("Failed to load init file");
+    }
 
     g_tty = tty_init();
 

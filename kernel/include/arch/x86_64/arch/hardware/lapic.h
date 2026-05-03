@@ -3,19 +3,10 @@
 #include <stdint.h>
 
 /**
- * @brief Initializes the LAPIC on the BSP. This should be called once during the early init of the kernel on the BSP.
+ * @brief Initializes the LAPIC for the current core
+ * @param core_id The ID of the current core
  */
-void arch_lapic_init_bsp();
-
-/**
- * @brief Initializes the LAPIC on an AP. This should be called once before cpu local is setup on the AP.
- */
-void arch_lapic_init_ap_early();
-
-/**
- * @brief Finishes initializing the LAPIC on an AP. This should be called once during the init of the kernel on each AP.
- */
-void arch_lapic_init_ap();
+void arch_lapic_init(uint32_t core_id);
 
 /**
  * @brief Get the APIC ID of the current processor

@@ -4,6 +4,8 @@
 #include <common/arch.h>
 #include <memory/memory.h>
 
+#include "common/init.h"
+
 typedef struct [[gnu::packed]] {
     uint16_t limit;
     uint64_t base;
@@ -30,30 +32,23 @@ void set_idtr_entry(int vector, void (*isr)(), uint8_t type_attr, int ist) {
     g_idt[vector] = (idt_entry_t) { .base_low = isr_addr & 0xFFFF, .base_mid = (isr_addr >> 16) & 0xFFFF, .selector = 0x08, .ist = ist, .type_attr = type_attr, .base_high = (isr_addr >> 32) & 0xFFFFFFFF };
 }
 
-void idt_init_bsp() {
-    for(int i = 0; i < 256; ++i) {
-        void (*handler)() = x86_isr_stub_table[i];
-        set_idtr_entry(i, handler, 0x8E, 0);
+void idt_init(uint32_t core_id) {
+    if(INIT_CORE_IS_BSP(core_id)) {
+        for(int i = 0; i < 256; ++i) {
+            void (*handler)() = x86_isr_stub_table[i];
+            set_idtr_entry(i, handler, 0x8E, 0);
+        }
+
+        // #BP
+        set_idtr_entry(0x03, x86_isr_stub_table[0x03], 0xEE, 0);
+        // #NMI
+        set_idtr_entry(0x02, x86_isr_stub_table[0x02], 0x8E, 1);
+        // #DF
+        set_idtr_entry(0x08, x86_isr_stub_table[0x08], 0x8E, 2);
+        // #MC
+        set_idtr_entry(0x12, x86_isr_stub_table[0x12], 0x8E, 3);
     }
 
-    // #BP
-    set_idtr_entry(0x03, x86_isr_stub_table[0x03], 0xEE, 0);
-    // #NMI
-    set_idtr_entry(0x02, x86_isr_stub_table[0x02], 0x8E, 1);
-    // #DF
-    set_idtr_entry(0x08, x86_isr_stub_table[0x08], 0x8E, 2);
-    // #MC
-    set_idtr_entry(0x12, x86_isr_stub_table[0x12], 0x8E, 3);
-
-    idtr_t idtr;
-    idtr.limit = (sizeof(idt_entry_t) * 256) - 1;
-    idtr.base = (virt_addr_t) &g_idt;
-
-    x86_64_load_idt(&idtr);
-}
-
-
-void idt_init_ap() {
     idtr_t idtr;
     idtr.limit = (sizeof(idt_entry_t) * 256) - 1;
     idtr.base = (virt_addr_t) &g_idt;

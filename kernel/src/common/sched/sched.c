@@ -19,7 +19,9 @@ void sched_preempt_enable() {
 }
 
 void idle_thread_entry() {
-    while(1) { arch_wait_for_interrupt(); }
+    while(1) {
+        arch_wait_for_interrupt();
+    }
 }
 
 thread_t* sched_next_thread(scheduler_t* sched) {
@@ -36,14 +38,15 @@ void sched_thread_schedule(thread_t* thread) {
     list_push_back(&thread->sched->thread_queue, &thread->list_node_sched);
     spinlock_unlock(&thread->sched->lock);
 }
-void sched_arch_init_bsp();
 
-void sched_init_bsp() {
+void sched_arch_init(uint32_t core_id);
+
+void sched_init(uint32_t core_id) {
     scheduler_t* sched = &CPU_LOCAL_GET_SELF()->sched;
     sched->thread_queue = LIST_INIT;
     sched->lock = SPINLOCK_INIT;
     sched->idle_thread = sched_arch_create_thread_kernel((virt_addr_t) idle_thread_entry);
-    sched_arch_init_bsp();
+    sched_arch_init(core_id);
 }
 
 void sched_yield(thread_state_t yield_state) {
@@ -70,6 +73,7 @@ void sched_yield(thread_state_t yield_state) {
 }
 
 [[noreturn]] void sched_arch_handoff() {
+    LOG_OKAY("handing off to scheduler\n");
     thread_t* bsp_thread = sched_arch_create_thread_kernel(0);
     bsp_thread->state = THREAD_STATE_DEAD;
 

@@ -4,7 +4,7 @@
  * @brief Initializes the CPU local storage for the BSP.
  * This function should be called once during the early init of the kernel on the BSP.
  */
-void cpu_local_init_bsp();
+void cpu_local_init_early();
 
 /**
  * @brief Initializes the CPU local storage for all APs.
@@ -17,7 +17,7 @@ void cpu_local_init_storage(uint32_t core_count);
  * @brief Initializes the CPU local storage for this AP.
  * @param core_id The id of the current core
  */
-void cpu_local_init_ap(uint32_t core_id);
+void cpu_local_init(uint32_t core_id);
 
 /**
  * @brief Returns the LAPIC id for a given core id

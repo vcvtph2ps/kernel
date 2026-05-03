@@ -1,5 +1,6 @@
 #pragma once
 #include <stddef.h>
+#include <stdint.h>
 
 /**
  * @brief Saves the current fpu state into the buffer at ptr
@@ -14,12 +15,13 @@ void arch_fpu_save(void* ptr);
 void arch_fpu_load(void* ptr);
 
 /**
- * @brief Initializes the FPU for the BSP. This should be called once during early init.
+ * @brief Initializes the FPU for the current core.
+ * @param core_id The ID of the current core.
  */
-void arch_fpu_init_bsp();
+void arch_fpu_init(uint32_t core_id);
 
 /**
- * @brief Initializes the FPU for the current AP. This should be called once during early init.
+ * @brief Initializes the FPU for the current core.
  */
 void arch_fpu_init_ap();
 

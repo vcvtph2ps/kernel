@@ -13,6 +13,8 @@
 #include <memory/vm.h>
 #include <string.h>
 
+#include "common/init.h"
+
 #define VADDR_TO_INDEX(VADDR, LEVEL) (((VADDR) >> ((LEVEL) * 9 + 3)) & 0x1FF)
 #define INDEX_TO_VADDR(INDEX, LEVEL) ((uint64_t) (INDEX) << ((LEVEL) * 9 + 3))
 #define LEVEL_TO_PAGESIZE(LEVEL) (1UL << (12 + 9 * ((LEVEL) - 1)))
@@ -378,21 +380,37 @@ void map_kernel() {
         const virt_addr_t alignment_diff = current.base - aligned_paddr;
         const size_t aligned_length = ALIGN_UP(current.length + alignment_diff, PAGE_SIZE_DEFAULT);
 
-        if(current.type == BOOTLOADER_MMAP_USABLE || current.type == BOOTLOADER_MMAP_RESERVED_MUST_MAP) { ptm_map(g_vm_global_address_space, vaddr, aligned_paddr, aligned_length, VM_PROT_RW, VM_CACHE_NORMAL, VM_PRIVILEGE_KERNEL, true); }
+        if(current.type == BOOTLOADER_MMAP_USABLE || current.type == BOOTLOADER_MMAP_RESERVED_MUST_MAP) {
+            ptm_map(g_vm_global_address_space, vaddr, aligned_paddr, aligned_length, VM_PROT_RW, VM_CACHE_NORMAL, VM_PRIVILEGE_KERNEL, true);
+        }
     }
 }
 static vm_region_t g_hhdm_region;
 
 void page_fault_handler(arch_interrupts_frame_t* frame) {
     LOG_STRC("addr=0x%llx\n", frame->interrupt_data);
-    if(!frame->is_user) { arch_panic_int(frame); }
+    if(!frame->is_user) {
+        arch_panic_int(frame);
+    }
     vm_fault_reason_t reason = VM_FAULT_UKKNOWN;
-    if((frame->error & (1 << 0)) == 0) { reason = VM_FAULT_NOT_PRESENT; }
-    if(vm_fault(frame->interrupt_data, reason)) { return; }
+    if((frame->error & (1 << 0)) == 0) {
+        reason = VM_FAULT_NOT_PRESENT;
+    }
+    if(vm_fault(frame->interrupt_data, reason)) {
+        return;
+    }
     arch_panic_int(frame);
 }
 
-void ptm_init_kernel_bsp() {
+void ptm_init_kernel(uint32_t core_id) {
+    if(!INIT_CORE_IS_BSP(core_id)) {
+        if(g_pat_supported) {
+            setup_page_table_attributes();
+        }
+        ptm_load_address_space(g_vm_global_address_space);
+        return;
+    }
+
     g_vm_global_address_space = (void*) TO_HHDM(pmm_alloc_page(PMM_FLAG_ZERO));
     g_vm_global_address_space->ptm.tlpt = pmm_alloc_page(PMM_FLAG_ZERO);
     g_vm_global_address_space->ptm.ptm_lock = SPINLOCK_NO_DW_INIT;
@@ -405,17 +423,25 @@ void ptm_init_kernel_bsp() {
     g_huge_pages_support = arch_cpuid_is_feature_supported(ARCH_CPUID_FEATURE_PDPE1GB_PAGES);
     g_la57_enabled = arch_cr_read_cr4() & (1 << 12); // cr4.LA57
 
-    if(g_pat_supported) { setup_page_table_attributes(); }
+    if(g_pat_supported) {
+        setup_page_table_attributes();
+    }
 
     uint64_t* pml4 = (uint64_t*) TO_HHDM(g_vm_global_address_space->ptm.tlpt);
-    for(int i = 256; i < 512; i++) { pml4[i] = PAGE_BIT_PRESENT | PAGE_BIT_RW | (pmm_alloc_page(PMM_FLAG_ZERO) & SMALL_PAGE_ADDRESS_MASK); }
+    for(int i = 256; i < 512; i++) {
+        pml4[i] = PAGE_BIT_PRESENT | PAGE_BIT_RW | (pmm_alloc_page(PMM_FLAG_ZERO) & SMALL_PAGE_ADDRESS_MASK);
+    }
     map_kernel();
 
     size_t hhdm_size = 0;
     for(size_t i = 0; i < g_bootloader_info.mmap_entry_count; i++) {
         bootloader_mmap_entry_t entry;
-        if(!bootloader_get_mmap_entry(i, &entry)) { arch_panic("Failed to get mmap entry %zu\n", i); }
-        if(entry.base + entry.length > hhdm_size) { hhdm_size = entry.base + entry.length; }
+        if(!bootloader_get_mmap_entry(i, &entry)) {
+            arch_panic("Failed to get mmap entry %zu\n", i);
+        }
+        if(entry.base + entry.length > hhdm_size) {
+            hhdm_size = entry.base + entry.length;
+        }
     }
 
     g_hhdm_region.address_space = g_vm_global_address_space;
@@ -447,10 +473,7 @@ void ptm_init_kernel_bsp() {
     interrupt_set_handler(0x0E, page_fault_handler);
 }
 
-void ptm_init_kernel_ap() {
-    if(g_pat_supported) { setup_page_table_attributes(); }
-    ptm_load_address_space(g_vm_global_address_space);
-}
+void ptm_init_kernel_ap() {}
 
 void ptm_init_user(vm_address_space_t* address_space) {
     address_space->ptm.tlpt = pmm_alloc_page(PMM_FLAG_ZERO);

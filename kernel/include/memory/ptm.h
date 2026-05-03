@@ -3,12 +3,13 @@
 #include <memory/vm.h>
 
 /**
- * @brief Initializes the paging and virtual memory system for the kernel.
+ * @brief Initializes the paging and virtual memory system for the current core
+ * @param core_id The ID of the current core
  */
-void ptm_init_kernel_bsp();
+void ptm_init_kernel(uint32_t core_id);
 
 /**
- * @brief Setup any features and load page tables created by the bsp
+ * @brief Setup any features and load page tables for the current core
  */
 void ptm_init_kernel_ap();
 

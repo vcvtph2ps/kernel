@@ -18,7 +18,7 @@ typedef struct dw_item {
 /**
  * @brief Initialize the deferred work system. Must be called before using any other deferred work functions.
  */
-void dw_init_bsp();
+void dw_init();
 
 /**
  * @brief Create an item of deferred work.

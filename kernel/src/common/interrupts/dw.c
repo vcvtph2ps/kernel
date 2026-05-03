@@ -8,7 +8,7 @@
 
 static slab_cache_t* g_dw_item_cache;
 
-void dw_init_bsp() {
+void dw_init() {
     g_dw_item_cache = slab_cache_create("dw_item_cache", sizeof(dw_item_t), alignof(dw_item_t));
 }
 
@@ -60,7 +60,9 @@ void dw_process() {
         sched_preempt_enable();
 
         dw_item->fn(dw_item->data);
-        if(dw_item->cleanup_fn) { dw_item->cleanup_fn(dw_item); }
+        if(dw_item->cleanup_fn) {
+            dw_item->cleanup_fn(dw_item);
+        }
         dw_item->in_use = false;
     }
 }
@@ -71,5 +73,7 @@ void dw_status_disable() {
 }
 
 void dw_status_enable() {
-    if(internal_enable()) { dw_process(); }
+    if(internal_enable()) {
+        dw_process();
+    }
 }

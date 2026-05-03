@@ -48,9 +48,10 @@ void sched_thread_schedule(thread_t* thread);
 void sched_arch_reset_preempt_timer();
 
 /**
- * @brief Initializes the scheduler on the BSP
+ * @brief Initializes the scheduler for the current core
+ * @param core_id The ID of the current core
  */
-void sched_init_bsp();
+void sched_init(uint32_t core_id);
 
 /**
  * @brief Hands off execution to the scheduler for the first time on the current CPU\

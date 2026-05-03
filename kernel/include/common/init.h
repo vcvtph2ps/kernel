@@ -1,8 +1,8 @@
 #pragma once
 
-#include <stdint.h>
-#include <stdbool.h>
 #include <lib/helpers.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 typedef enum {
     INIT_STAGE_BASE_MEM,
@@ -16,18 +16,17 @@ typedef enum {
     INIT_STAGE_USERSPACE
 } init_stage_t;
 
-extern ATOMIC uint32_t g_arch_bsp_finished;
-extern ATOMIC uint32_t g_arch_ap_finished;
+ATOMIC extern uint32_t g_init_bsp_finished;
+ATOMIC extern uint32_t g_init_ap_finished;
 
-void fn_init_stage_base_mem_bsp(uint32_t core_id);
-void fn_init_stage_base_mem_ap(uint32_t core_id);
-void fn_init_stage_arch_cpu_bsp(uint32_t core_id);
-void fn_init_stage_arch_cpu_ap(uint32_t core_id);
-void fn_init_stage_time_bsp(uint32_t core_id);
-void fn_init_stage_time_ap(uint32_t core_id);
-void fn_init_stage_acpi_bootstrap(uint32_t core_id);
-void fn_init_stage_arch_platform(uint32_t core_id);
-void fn_init_stage_arch_ap_init(uint32_t core_id);
-void fn_init_stage_arch_userspace(uint32_t core_id);
-void fn_init_stage_vfs(uint32_t core_id);
-void fn_init_stage_userspace(uint32_t core_id);
+#define INIT_CORE_IS_BSP(CORE_ID) ((CORE_ID) == 0)
+
+void init_stage_base_mem(uint32_t core_id);
+void init_stage_arch_cpu(uint32_t core_id);
+void init_stage_time(uint32_t core_id);
+void init_stage_acpi_bootstrap(uint32_t core_id);
+void init_stage_arch_platform(uint32_t core_id);
+void init_stage_arch_ap_init(uint32_t core_id);
+void init_stage_arch_userspace(uint32_t core_id);
+void init_stage_vfs(uint32_t core_id);
+void init_stage_userspace(uint32_t core_id);

@@ -5,6 +5,8 @@
 #include <memory/vm.h>
 #include <stddef.h>
 
+#include "common/init.h"
+
 size_t g_fpu_area_size;
 void (*g_fpu_save)(void* ptr);
 void (*g_fpu_load)(void* ptr);
@@ -36,7 +38,9 @@ void arch_fpu_load(void* ptr) {
 }
 
 void internal_fpu_init() {
-    if(!arch_cpuid_is_feature_supported(ARCH_CPUID_FEATURE_FXSR)) { arch_panic("FXSR is not supported"); }
+    if(!arch_cpuid_is_feature_supported(ARCH_CPUID_FEATURE_FXSR)) {
+        arch_panic("FXSR is not supported");
+    }
 
     // Enable SSE & FPU
     uint64_t cr0 = arch_cr_read_cr0();
@@ -73,8 +77,12 @@ void internal_fpu_init() {
     }
 }
 
-void arch_fpu_init_bsp() {
+void arch_fpu_init(uint32_t core_id) {
     internal_fpu_init();
+
+    if(!INIT_CORE_IS_BSP(core_id)) {
+        return;
+    }
 
     if(arch_cpuid_is_feature_supported(ARCH_CPUID_FEATURE_XSAVE)) {
         g_fpu_area_size = arch_cpuid(0x0d, 0, ARCH_CPUID_ECX);
@@ -89,11 +97,6 @@ void arch_fpu_init_bsp() {
         g_fpu_load = fxrstor;
     }
 }
-
-void arch_fpu_init_ap() {
-    internal_fpu_init();
-}
-
 
 void* arch_fpu_alloc_area() {
     return vm_map_anon_aligned(g_vm_global_address_space, VM_NO_HINT, ALIGN_UP(g_fpu_area_size, 4096), 4096, VM_PROT_RW, VM_CACHE_NORMAL, VM_FLAG_NONE);

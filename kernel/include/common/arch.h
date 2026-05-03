@@ -5,13 +5,13 @@
 #include <stddef.h>
 
 /**
- * @brief Initializes the architecture-specific code for the bootstrapping processor (BSP). Should only be called once during early initialization before any other cores are started.
+ * @brief Initializes the architecture-specific code for the bootstrap processor
  */
 void arch_init_bsp(void);
 
 /**
- * @brief Initializes the architecture-specific code for an application processor (AP). Should only be called once per AP during early initialization of that AP before it starts running any non-arch-specific code.
- * @param core_id The core id of the AP being initialized. This is passed in by the bootloader when starting the AP and should be used by the AP to identify itself and to determine which core it is running on.
+ * @brief Initializes the architecture-specific code for an application processor.
+ * @param core_id The ID of the current core being initialized.
  */
 void arch_init_ap(uint32_t core_id);
 

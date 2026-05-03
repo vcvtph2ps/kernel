@@ -21,13 +21,12 @@ void init_cpu_local_data(arch_cpu_local_t* cpu_local, uint32_t core_id) {
     cpu_local->preempt.yield_pending = false;
 }
 
-void cpu_local_init_bsp() {
+void cpu_local_init_early() {
     init_cpu_local_data((arch_cpu_local_t*) &g_bsp_cpu_local, 0);
     arch_msr_write_msr(IA32_GS_BASE_MSR, (uint64_t) &g_bsp_cpu_local);
 }
 
 void cpu_local_init_storage(uint32_t core_count) {
-    (void) core_count;
     g_cpu_local_count = core_count;
     g_cpu_local_storage = (arch_cpu_local_t*) vm_map_anon(g_vm_global_address_space, VM_NO_HINT, ALIGN_UP(sizeof(arch_cpu_local_t) * g_cpu_local_count, PAGE_SIZE_DEFAULT), VM_PROT_RW, VM_CACHE_NORMAL, true);
     g_bsp_cpu_local.lapic_id = arch_lapic_get_id();
@@ -35,8 +34,7 @@ void cpu_local_init_storage(uint32_t core_count) {
     arch_msr_write_msr(IA32_GS_BASE_MSR, (uint64_t) &g_cpu_local_storage[0]);
 }
 
-void cpu_local_init_ap(uint32_t core_id) {
-    (void) core_id;
+void cpu_local_init(uint32_t core_id) {
     init_cpu_local_data(&g_cpu_local_storage[core_id], core_id);
     arch_msr_write_msr(IA32_GS_BASE_MSR, (uint64_t) &g_cpu_local_storage[core_id]);
 }

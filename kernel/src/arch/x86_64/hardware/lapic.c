@@ -12,6 +12,8 @@
 #include <stdint.h>
 #include <vector_alloc.h>
 
+#include "common/init.h"
+
 
 // lapic registers
 #define LAPIC_ID 0x20
@@ -82,7 +84,7 @@ bool internal_x2apic_supported(void) {
     return arch_cpuid_is_feature_supported(ARCH_CPUID_FEATURE_X2APIC);
 }
 
-uintptr_t intrnal_lapic_get_base_address() {
+uintptr_t internal_lapic_get_base_address() {
     return TO_HHDM(arch_msr_read_msr(IA32_APIC_BASE_MSR) & 0xFFFFF000);
 }
 
@@ -90,7 +92,7 @@ uintptr_t arch_lapic_get_base_address() {
     return CPU_LOCAL_READ(lapic_base_address);
 }
 
-static void apic_enable_mode_bsp() {
+static void apic_enable_mode(uint32_t core_id) {
     uint64_t msr = arch_msr_read_msr(IA32_APIC_BASE_MSR);
 
     if(!(msr & APIC_BASE_ENABLE)) {
@@ -104,38 +106,17 @@ static void apic_enable_mode_bsp() {
     if(g_x2apic_mode) {
         msr |= APIC_BASE_X2APIC;
         arch_msr_write_msr(IA32_APIC_BASE_MSR, msr);
-        LOG_INFO("enabling in x2apic mode\n");
+        if(INIT_CORE_IS_BSP(core_id)) {
+            LOG_INFO("enabling in x2apic mode\n");
+        }
         return;
     }
 
-    LOG_INFO("x2apic mode not supported, using xapic mode\n");
-
-    uint8_t cpuid_result = (uint8_t) (arch_cpuid(0x80000008, 0, ARCH_CPUID_EAX) & 0xff);
-    LOG_INFO("max phys bits: %u\n", cpuid_result);
-    assert(cpuid_result >= 36 && "physical address bits >= 36");
-    assert(cpuid_result + 12 < 64 && "physical address bits + 12 < 64");
-    LOG_INFO("apic base address: 0x%lx\n", intrnal_lapic_get_base_address());
-}
-
-static void apic_enable_mode_ap(void) {
-    uint64_t msr = arch_msr_read_msr(IA32_APIC_BASE_MSR);
-
-    if(!(msr & APIC_BASE_ENABLE)) {
-        msr |= APIC_BASE_ENABLE;
-        arch_msr_write_msr(IA32_APIC_BASE_MSR, msr);
-        msr = arch_msr_read_msr(IA32_APIC_BASE_MSR);
+    if(INIT_CORE_IS_BSP(core_id)) {
+        LOG_INFO("x2apic mode not supported, using xapic mode\n");
+        LOG_INFO("apic base address: 0x%lx\n", internal_lapic_get_base_address());
     }
-
-    if(g_x2apic_mode) {
-        msr |= APIC_BASE_X2APIC;
-        arch_msr_write_msr(IA32_APIC_BASE_MSR, msr);
-        nl_printf("ap_early | enabling in x2apic mode\n");
-        return;
-    }
-
-    arch_msr_write_msr(IA32_APIC_BASE_MSR, msr);
 }
-
 
 uint32_t lapic_read(uint32_t reg) {
     if(g_x2apic_mode) {
@@ -212,32 +193,22 @@ void lapic_configure() {
     lapic_write(LAPIC_SPURIOUS, spurious);
 }
 
-void lapic_timer_init_bsp();
-void lapic_timer_init_ap();
+void lapic_timer_init(uint32_t core_id);
 
-void arch_lapic_init_bsp() {
-    if(vector_alloc_specific_interrupt(0x20) == 0) { arch_panic("Failed to allocate interrupt vector 0x20\n"); }
+void arch_lapic_init(uint32_t core_id) {
+    if(INIT_CORE_IS_BSP(core_id)) {
+        if(vector_alloc_specific_interrupt(0x20) == 0) {
+            arch_panic("Failed to allocate interrupt vector 0x20\n");
+        }
+    }
 
-    apic_enable_mode_bsp();
+    apic_enable_mode(core_id);
     CPU_LOCAL_WRITE(lapic_id, arch_lapic_get_id());
-    CPU_LOCAL_WRITE(lapic_base_address, intrnal_lapic_get_base_address());
+    CPU_LOCAL_WRITE(lapic_base_address, internal_lapic_get_base_address());
 
     lapic_configure();
-    lapic_timer_init_bsp();
+    lapic_timer_init(core_id);
     LOG_OKAY("initialized in %s mode for lapic %d (bsp)\n", g_x2apic_mode ? "x2APIC" : "xAPIC", arch_lapic_get_id());
-}
-
-// @note: this function only exists because to read lapic id we need to have it setup
-void arch_lapic_init_ap_early() {
-    apic_enable_mode_ap();
-    CPU_LOCAL_WRITE(lapic_id, arch_lapic_get_id());
-}
-void arch_lapic_init_ap() {
-    CPU_LOCAL_WRITE(lapic_base_address, intrnal_lapic_get_base_address());
-
-    lapic_configure();
-    lapic_timer_init_ap();
-    LOG_OKAY("initialized in %s mode for lapic %d\n", g_x2apic_mode ? "x2APIC" : "xAPIC", arch_lapic_get_id());
 }
 
 void lapic_send_icr(uint32_t apic_id, uint64_t icr) {
@@ -256,7 +227,9 @@ void lapic_send_icr(uint32_t apic_id, uint64_t icr) {
         io_mem_write_u32(arch_lapic_get_base_address() + LAPIC_ICR_HIGH, (icr >> 32));
         io_mem_write_u32(arch_lapic_get_base_address() + LAPIC_ICR_LOW, (icr & 0xFFFFFFFF));
         arch_restore_interupts(irq_state);
-        while(lapic_read(LAPIC_ICR_LOW) & (1 << 12)) { __builtin_ia32_pause(); }
+        while(lapic_read(LAPIC_ICR_LOW) & (1 << 12)) {
+            __builtin_ia32_pause();
+        }
     }
 }
 

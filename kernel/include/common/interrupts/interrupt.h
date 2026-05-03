@@ -5,14 +5,10 @@
 typedef void (*interrupt_handler_fn_t)(arch_interrupts_frame_t* frame);
 
 /**
- * @brief Initialize the interrupt system. This should be called once during the early init of the kernel
+ * @brief Initialize the interrupt system for the current core
+ * @param core_id The ID of the current core
  */
-void interrupt_init_bsp();
-
-/**
- * @brief Initialize the interrupt system on current AP.
- */
-void interrupt_init_ap();
+void interrupt_init(uint32_t core_id);
 
 /**
  * @brief Register an interrupt handler for the given interrupt vector.

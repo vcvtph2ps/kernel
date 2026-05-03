@@ -21,6 +21,8 @@
 #include <spinlock.h>
 #include <string.h>
 
+#include "common/init.h"
+
 #define LAPIC_TIMER_VECTOR 0x20
 
 typedef struct [[gnu::packed]] {
@@ -78,8 +80,10 @@ void internal_thread_exit_kernel() {
 }
 
 
-void sched_arch_init_bsp() {
-    interrupt_set_handler(LAPIC_TIMER_VECTOR, sched_timer_handler);
+void sched_arch_init(uint32_t core_id) {
+    if(INIT_CORE_IS_BSP(core_id)) {
+        interrupt_set_handler(LAPIC_TIMER_VECTOR, sched_timer_handler);
+    }
 }
 
 x86_64_thread_t* sched_arch_create_thread_common(size_t tid, void* process, scheduler_t* sched, virt_addr_t kernel_stack_top, virt_addr_t stack) {
@@ -93,7 +97,9 @@ x86_64_thread_t* sched_arch_create_thread_common(size_t tid, void* process, sche
     thread->fpu_area = nullptr;
     thread->fsbase = 0;
     thread->gsbase = 0;
-    if(process) { thread->fpu_area = arch_fpu_alloc_area(); }
+    if(process) {
+        thread->fpu_area = arch_fpu_alloc_area();
+    }
 
     LOG_INFO("Created thread with tid %u\n", tid);
     return thread;
@@ -138,8 +144,12 @@ void sched_arch_context_switch(thread_t* t_current, thread_t* t_next) {
 
     CPU_LOCAL_WRITE(current_thread, next);
     interrupt_set_usermode_stack(next->stack);
-    if(current->common.process) { arch_fpu_save(current->fpu_area); }
-    if(next->common.process) { arch_fpu_load(next->fpu_area); }
+    if(current->common.process) {
+        arch_fpu_save(current->fpu_area);
+    }
+    if(next->common.process) {
+        arch_fpu_load(next->fpu_area);
+    }
     if(current->common.process && next->common.process && current->common.process != next->common.process) {
         ptm_load_address_space(next->common.process->address_space);
     } else if(next->common.process) {
