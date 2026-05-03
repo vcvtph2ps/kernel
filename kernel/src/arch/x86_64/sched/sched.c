@@ -55,9 +55,10 @@ void internal_sched_thread_drop(thread_t* thread) {
 
     // @todo: reap
     switch(thread->state) {
-        case THREAD_STATE_READY: sched_thread_schedule(thread); break;
-        case THREAD_STATE_DEAD:  break;
-        default:                 assertf(false, "invalid state on drop %d", thread->state);
+        case THREAD_STATE_READY:   sched_thread_schedule(thread); break;
+        case THREAD_STATE_DEAD:    break;
+        case THREAD_STATE_BLOCKED: break;
+        default:                   assertf(false, "invalid state on drop %d", thread->state);
     }
 }
 

@@ -69,7 +69,10 @@ syscall_ret_t internal_set_pgid(uint64_t pid, uint64_t pgid) {
     return SYSCALL_RET_VALUE(0);
 }
 
-syscall_ret_t syscall_sys_get_process_info(uint64_t query, uint64_t param1, uint64_t param2) {
+syscall_ret_t syscall_sys_get_process_info(syscall_args_t args) {
+    uint64_t query = args.arg1;
+    uint64_t param1 = args.arg2;
+    uint64_t param2 = args.arg3;
     // @todo: process group id is lazy as fuck and not posix compliant
     switch(query) {
         case SYSCALL_GET_PROCESS_INFO_PID:      return SYSCALL_RET_VALUE(CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid);

@@ -58,7 +58,7 @@ char* tty_read(tty_t* tty, size_t* size) {
     if(size == nullptr) { return nullptr; }
     // @todo: check if the current process is the process that owns this tty
     spinlock_nodw_lock(&tty->lock);
-    if(tty->input_buffer_size == 1) {
+    if(tty->input_buffer_size == 0) {
         spinlock_nodw_unlock(&tty->lock);
         tty_wait_for(tty);
     }

@@ -1,4 +1,5 @@
 #include <arch/cpu_local.h>
+#include <common/userspace/structs.h>
 #include <common/userspace/syscall.h>
 #include <fs/vfs.h>
 #include <log.h>
@@ -76,6 +77,8 @@ syscall_ret_t syscall_sys_read(syscall_args_t args) {
     vfs_result_t result = node->node->ops->read(node->node, kernel_buffer, count, node->cursor, &read_count);
 
     vm_copy_to(CPU_LOCAL_GET_CURRENT_THREAD()->common.process->address_space, buf, kernel_buffer, read_count);
+    heap_free(kernel_buffer, count);
+
     if(result != VFS_RESULT_OK) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD); }
 
     node->cursor += read_count;

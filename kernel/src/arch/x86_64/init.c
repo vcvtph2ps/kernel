@@ -1,7 +1,6 @@
 #include <arch/hardware/fpu.h>
 #include <arch/hardware/lapic.h>
 #include <arch/hardware/tsc.h>
-#include <common/time.h>
 #include <arch/internal/cpuid.h>
 #include <common/arch.h>
 #include <common/boot/bootloader.h>
@@ -9,6 +8,8 @@
 #include <common/interrupts/dw.h>
 #include <common/interrupts/interrupt.h>
 #include <common/sched/sched.h>
+#include <common/time.h>
+#include <common/tty.h>
 #include <common/userspace/process.h>
 #include <common/userspace/syscall.h>
 #include <fs/vfs.h>
@@ -123,6 +124,8 @@ void arch_init_bsp() {
     elfldr_elf_loader_info_t* elf_info;
     bool loaded_elf = elfldr_load_file(process_as, &VFS_MAKE_ABS_PATH("/usr/bin/bash"), &elf_info);
     assert(loaded_elf && "Failed to load init file");
+
+    g_tty = tty_init();
 
     size_t stack_virt_size = 1024 * PAGE_SIZE_DEFAULT;
     virt_addr_t user_stack = (virt_addr_t) vm_map_anon(process_as, (void*) (MEMORY_USERSPACE_END - (10 * PAGE_SIZE_DEFAULT) - stack_virt_size), stack_virt_size, VM_PROT_RW, VM_CACHE_NORMAL, VM_FLAG_FIXED | VM_FLAG_ZERO | VM_FLAG_DYNAMICALLY_BACKED);
