@@ -1,4 +1,6 @@
 #include <arch/hardware/fpu.h>
+#include <arch/hardware/i8042/i8042.h>
+#include <arch/hardware/ioapic.h>
 #include <arch/hardware/lapic.h>
 #include <arch/hardware/tsc.h>
 #include <arch/internal/cpuid.h>
@@ -22,6 +24,8 @@
 #include <memory/ptm.h>
 #include <memory/slab.h>
 #include <memory/vm.h>
+#include <uacpi/uacpi.h>
+
 
 static uint32_t g_arch_ap_finished = 0;
 
@@ -108,6 +112,12 @@ void arch_init_bsp() {
     arch_tsc_calibrate();
     time_init();
 
+    void* temp_buffer = vm_map_anon(g_vm_global_address_space, VM_NO_HINT, 4096, VM_PROT_RW, VM_CACHE_NORMAL, VM_FLAG_ZERO);
+    uacpi_status ret = uacpi_setup_early_table_access(temp_buffer, 4096);
+    if(uacpi_unlikely_error(ret)) { arch_panic("uacpi_setup_early_table_access error: %s", uacpi_status_to_string(ret)); }
+
+    arch_ioapic_init_bsp();
+
     cpu_local_init_storage(g_bootloader_info.cpu_count);
     init_aps();
     syscall_init();
@@ -126,6 +136,7 @@ void arch_init_bsp() {
     assert(loaded_elf && "Failed to load init file");
 
     g_tty = tty_init();
+    arch_i8042_init();
 
     size_t stack_virt_size = 1024 * PAGE_SIZE_DEFAULT;
     virt_addr_t user_stack = (virt_addr_t) vm_map_anon(process_as, (void*) (MEMORY_USERSPACE_END - (10 * PAGE_SIZE_DEFAULT) - stack_virt_size), stack_virt_size, VM_PROT_RW, VM_CACHE_NORMAL, VM_FLAG_FIXED | VM_FLAG_ZERO | VM_FLAG_DYNAMICALLY_BACKED);

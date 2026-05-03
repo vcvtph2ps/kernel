@@ -105,14 +105,14 @@ local uacpi = fab.git(
 )
 
 table.insert(include_dirs, c.include_dir(path(fab.build_dir(), flanterm.path, "src")))
--- table.insert(include_dirs, c.include_dir(path(fab.build_dir(), uacpi.path, "include")))
+table.insert(include_dirs, c.include_dir(path(fab.build_dir(), uacpi.path, "include")))
 table.insert(include_dirs, c.include_dir(path(fab.build_dir(), freestanding_c_headers.path, opt_arch .. "/include")))
 
 local flanterm_sources = {}
 table.extend(flanterm_sources, sources(fab.glob("src/*.c", { relative_to = flanterm.path })))
 
--- local uacpi_sources = {}
--- table.extend(uacpi_sources, sources(fab.glob("source/*.c", { relative_to = uacpi.path })))
+local uacpi_sources = {}
+table.extend(uacpi_sources, sources(fab.glob("source/*.c", { relative_to = uacpi.path })))
 
 if opt_arch == "x86_64" then
     -- Flags
@@ -140,12 +140,12 @@ local objects = {}
 local flanterm_objects = generate(flanterm_sources, {
     c = function(sources) return clang:generate(sources, c_flags, include_dirs) end
 })
--- local uacpi_objects = generate(uacpi_sources, {
---     c = function(sources) return clang:generate(sources, c_flags, include_dirs) end
--- })
+local uacpi_objects = generate(uacpi_sources, {
+    c = function(sources) return clang:generate(sources, c_flags, include_dirs) end
+})
 
 table.extend(objects, flanterm_objects)
--- table.extend(objects, uacpi_objects)
+table.extend(objects, uacpi_objects)
 
 local kernel_flags = {}
 table.extend(kernel_flags, c_flags)

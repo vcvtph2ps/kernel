@@ -29,14 +29,17 @@ tty_t* tty_init() {
 void tty_put_byte(tty_t* tty, uint8_t byte) {
     spinlock_nodw_lock(&tty->lock);
 
-    tty->input_buffer[tty->input_buffer_size] = byte;
+    if(tty->input_buffer_size < tty->input_buffer_capacity) { tty->input_buffer[tty->input_buffer_size] = byte; }
 
     if(byte == '\n') {
+        if(tty->input_buffer_size < tty->input_buffer_capacity) tty->input_buffer_size++;
         wait_queue_wake_one(&tty->wait_queue);
     } else if(byte == '\b') {
         if(tty->input_buffer_size > 0) { tty->input_buffer_size--; }
     } else if(byte == ('u' & 0x1f)) {
         tty->input_buffer_size = 0;
+    } else {
+        if(tty->input_buffer_size < tty->input_buffer_capacity) tty->input_buffer_size++;
     }
     spinlock_nodw_unlock(&tty->lock);
     if(tty->echo) nl_printf("%c", byte);

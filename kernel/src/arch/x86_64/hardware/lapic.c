@@ -10,6 +10,7 @@
 #include <memory/memory.h>
 #include <memory/vm.h>
 #include <stdint.h>
+#include <vector_alloc.h>
 
 
 // lapic registers
@@ -215,6 +216,8 @@ void lapic_timer_init_bsp();
 void lapic_timer_init_ap();
 
 void arch_lapic_init_bsp() {
+    if(vector_alloc_specific_interrupt(0x20) == 0) { arch_panic("Failed to allocate interrupt vector 0x20\n"); }
+
     apic_enable_mode_bsp();
     CPU_LOCAL_WRITE(lapic_id, arch_lapic_get_id());
     CPU_LOCAL_WRITE(lapic_base_address, intrnal_lapic_get_base_address());

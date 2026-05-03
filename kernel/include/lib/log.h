@@ -1,6 +1,7 @@
 #pragma once
 #include <stdarg.h>
 #include <stddef.h>
+#include <stdint.h>
 
 typedef enum {
     LOG_LEVEL_STRC = 0,
@@ -19,6 +20,19 @@ typedef enum {
 void log_init(void);
 
 /**
+ * @brief Locks the log lock
+ * @note Calling any locking functions until log_unlock will deadlock
+ * @return The previous interrupt state before the lock was acquired
+ */
+[[nodiscard]] uint64_t log_lock(void);
+
+/**
+ * @brief Unlocks the log lock
+ * @param interrupt_state The previous interrupt state returned by log_lock.
+ */
+void log_unlock(uint64_t interrupt_state);
+
+/**
  * @brief Non-locking vprintf
  */
 int nl_vprintf(const char* fmt, va_list val); // NOLINT
@@ -27,7 +41,6 @@ int nl_vprintf(const char* fmt, va_list val); // NOLINT
  * @brief Non-locking printf
  */
 int nl_printf(const char* fmt, ...); // NOLINT
-
 
 /**
  * @brief Prints a log message with the specified log level and format string. This should only be called after log_init has been called.
@@ -45,20 +58,22 @@ void log_print_nolock(log_level_t log, const char* fmt, ...);
 
 #define LOG_COLORIZE(text, color) "\x1b[1m\x1b[" color "m" text "\x1b[0m"
 
-#define LOG_FAIL(fmt, ...)                                                                       \
-    do { log_print(LOG_LEVEL_FAIL, LOG_COLORIZE("fail | ", "91") fmt, ##__VA_ARGS__); } while(0)
+#define LOG_STRINGIZE(x) #x
 
-#define LOG_WARN(fmt, ...)                                                                       \
-    do { log_print(LOG_LEVEL_WARN, LOG_COLORIZE("warn | ", "93") fmt, ##__VA_ARGS__); } while(0)
+#define LOG_FAIL(fmt, ...)                                                                                        \
+    do { log_print(LOG_LEVEL_FAIL, LOG_COLORIZE("fail | ", "91") "%s: " fmt, __func__, ##__VA_ARGS__); } while(0)
 
-#define LOG_OKAY(fmt, ...)                                                                       \
-    do { log_print(LOG_LEVEL_OKAY, LOG_COLORIZE("okay | ", "92") fmt, ##__VA_ARGS__); } while(0)
+#define LOG_WARN(fmt, ...)                                                                                        \
+    do { log_print(LOG_LEVEL_WARN, LOG_COLORIZE("warn | ", "93") "%s: " fmt, __func__, ##__VA_ARGS__); } while(0)
 
-#define LOG_INFO(fmt, ...)                                                                       \
-    do { log_print(LOG_LEVEL_INFO, LOG_COLORIZE("info | ", "96") fmt, ##__VA_ARGS__); } while(0)
+#define LOG_OKAY(fmt, ...)                                                                                        \
+    do { log_print(LOG_LEVEL_OKAY, LOG_COLORIZE("okay | ", "92") "%s: " fmt, __func__, ##__VA_ARGS__); } while(0)
 
-#define LOG_DBGL(fmt, ...)                                                                       \
-    do { log_print(LOG_LEVEL_DBGL, LOG_COLORIZE("dbgl | ", "34") fmt, ##__VA_ARGS__); } while(0)
+#define LOG_INFO(fmt, ...)                                                                                        \
+    do { log_print(LOG_LEVEL_INFO, LOG_COLORIZE("info | ", "96") "%s: " fmt, __func__, ##__VA_ARGS__); } while(0)
 
-#define LOG_STRC(fmt, ...)                                                                       \
-    do { log_print(LOG_LEVEL_STRC, LOG_COLORIZE("strc | ", "95") fmt, ##__VA_ARGS__); } while(0)
+#define LOG_DBGL(fmt, ...)                                                                                        \
+    do { log_print(LOG_LEVEL_DBGL, LOG_COLORIZE("dbgl | ", "34") "%s: " fmt, __func__, ##__VA_ARGS__); } while(0)
+
+#define LOG_STRC(fmt, ...)                                                                                        \
+    do { log_print(LOG_LEVEL_STRC, LOG_COLORIZE("strc | ", "95") "%s: " fmt, __func__, ##__VA_ARGS__); } while(0)

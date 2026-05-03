@@ -129,3 +129,11 @@ void log_print(log_level_t level, const char* fmt, ...) {
     vprintf(fmt, val);
     va_end(val);
 }
+
+uint64_t log_lock() {
+    return spinlock_noint_lock(&g_log_lock);
+}
+
+void log_unlock(uint64_t interrupt_state) {
+    spinlock_noint_unlock(&g_log_lock, interrupt_state);
+}
