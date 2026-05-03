@@ -103,6 +103,8 @@ void syscall_init() {
     SYSCALL_DISPATCHER(SYSCALL_SEEK, syscall_sys_seek);
     SYSCALL_DISPATCHER(SYSCALL_ISATTY, syscall_sys_is_a_tty);
     SYSCALL_DISPATCHER(SYSCALL_GET_CWD, syscall_sys_get_cwd);
+    SYSCALL_DISPATCHER(SYSCALL_STAT, syscall_sys_stat);
+    SYSCALL_DISPATCHER(SYSCALL_STAT_AT, syscall_sys_stat_at);
 
     SYSCALL_DISPATCHER(SYSCALL_FUTEX, syscall_sys_futex);
     SYSCALL_DISPATCHER(SYSCALL_GET_CLOCK, syscall_sys_get_clock);

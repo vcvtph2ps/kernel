@@ -196,3 +196,90 @@ syscall_ret_t syscall_sys_get_cwd(syscall_args_t args) {
     heap_free(kernel_buf, kernel_buf_size);
     return SYSCALL_RET_VALUE(0);
 }
+
+syscall_ret_t stat_internal(structs_stat_t* statbuf, vfs_node_t* vfs_node) {
+    vfs_node_attr_t attr;
+    vfs_result_t res = vfs_node->ops->attr(vfs_node, &attr);
+    if(res != VFS_RESULT_OK) {
+        assert(false);
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT);
+    }
+
+    memset(statbuf, 0, sizeof(structs_stat_t));
+
+    statbuf->st_size = attr.size;
+    statbuf->st_nlink = 1; // @todo:
+    statbuf->st_mode = 0;
+    switch(attr.type) {
+        case VFS_NODE_TYPE_FILE:    statbuf->st_mode |= STRUCTS_STAT_MODE_TYPE_FILE; break;
+        case VFS_NODE_TYPE_DIR:     statbuf->st_mode |= STRUCTS_STAT_MODE_TYPE_DIR; break;
+        case VFS_NODE_TYPE_CHARDEV: statbuf->st_mode |= STRUCTS_STAT_MODE_TYPE_CHAR; break;
+        default:                    assert(false); return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT);
+    }
+
+    statbuf->st_mode |= attr.permissions;
+    return SYSCALL_RET_VALUE(0);
+}
+
+#define AT_FDCWD -100
+
+syscall_ret_t syscall_sys_stat(syscall_args_t args) {
+    uint64_t fd = args.arg1;
+    virt_addr_t statbuf = args.arg2;
+
+    LOG_INFO("syscall_sys_stat: pid=%lu, fd=%d\n", CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid, fd);
+    if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, statbuf, sizeof(structs_stat_t))) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT); }
+
+    fd_store_t* store = CPU_LOCAL_GET_CURRENT_THREAD()->common.process->fd_store;
+    fd_data_t* node = fd_store_get_fd(store, fd);
+    if(!node) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD); }
+    if(!node->node) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD); }
+
+    structs_stat_t buf;
+    syscall_ret_t ret = stat_internal(&buf, node->node);
+    if(ret.is_error) { return ret; }
+    vm_copy_to(CPU_LOCAL_GET_CURRENT_THREAD()->common.process->address_space, statbuf, &buf, sizeof(structs_stat_t));
+    return ret;
+}
+
+syscall_ret_t syscall_sys_stat_at(uint64_t fd, uint64_t path, size_t path_len, uint64_t statbuf, size_t flag) {
+    (void) flag;
+    if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, statbuf, sizeof(structs_stat_t))) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT); }
+
+    if(path_len == 0 || path_len > 256) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_INVAL); }
+    if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, path, path_len)) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT); }
+
+    char pathname[256];
+    vm_copy_from(pathname, CPU_LOCAL_GET_CURRENT_THREAD()->common.process->address_space, path, path_len);
+    pathname[path_len] = '\0';
+    process_t* process = CPU_LOCAL_GET_CURRENT_THREAD()->common.process;
+    LOG_INFO("syscall_sys_stat_at: pid=%lu, fd=%d, path=%s\n", process->pid, fd, pathname);
+
+    vfs_path_t vfs_path;
+
+    if(pathname[0] == '/') {
+        vfs_path.node = nullptr;
+        vfs_path.rel_path = pathname;
+    } else {
+        if(((int32_t) fd) == AT_FDCWD) {
+            vfs_path.node = process->cwd;
+        } else {
+            fd_store_t* store = process->fd_store;
+            fd_data_t* node = fd_store_get_fd(store, fd);
+            if(!node) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD); }
+            if(!node->node) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD); }
+            vfs_path.node = node->node;
+        }
+        vfs_path.rel_path = pathname;
+    }
+
+    vfs_node_t* result_node;
+    vfs_result_t res = vfs_lookup(&vfs_path, &result_node);
+    if(res != VFS_RESULT_OK) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_NOENT); }
+
+    structs_stat_t buf;
+    syscall_ret_t ret = stat_internal(&buf, result_node);
+    if(ret.is_error) { return ret; }
+    vm_copy_to(CPU_LOCAL_GET_CURRENT_THREAD()->common.process->address_space, statbuf, &buf, sizeof(structs_stat_t));
+    return ret;
+}

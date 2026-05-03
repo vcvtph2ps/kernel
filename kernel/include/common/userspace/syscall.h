@@ -21,6 +21,8 @@ typedef enum : uint64_t {
     SYSCALL_SEEK = 24,
     SYSCALL_ISATTY = 25,
     SYSCALL_GET_CWD = 26,
+    SYSCALL_STAT = 27,
+    SYSCALL_STAT_AT = 28,
 
     SYSCALL_FUTEX = 30,
     SYSCALL_GET_CLOCK = 31,
