@@ -13,6 +13,7 @@
 #include <common/userspace/syscalls/sys_futex.h>
 #include <helpers.h>
 #include <list.h>
+#include <log.h>
 #include <memory/heap.h>
 #include <memory/memory.h>
 #include <memory/ptm.h>
@@ -131,7 +132,7 @@ thread_t* sched_arch_thread_current() {
 }
 
 void sched_arch_context_switch(thread_t* t_current, thread_t* t_next) {
-    LOG_INFO("current=%u, next=%u\n", t_current->tid, t_next->tid);
+    LOG_STRC("current=%u, next=%u\n", t_current->tid, t_next->tid);
     x86_64_thread_t* current = CONTAINER_OF(t_current, x86_64_thread_t, common);
     x86_64_thread_t* next = CONTAINER_OF(t_next, x86_64_thread_t, common);
 
