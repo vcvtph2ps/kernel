@@ -30,7 +30,7 @@ syscall_ret_t syscall_sys_open(syscall_args_t args) {
     memcpy(pathname, (const void*) pathname_str, pathname_len);
     pathname[pathname_len] = '\0';
 
-    LOG_STRC("syscall_sys_open: pid=%lu, pathname=%s\n", CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid, pathname);
+    LOG_STRC("pid=%lu, pathname=%s\n", CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid, pathname);
 
     vfs_node_t* node;
     if(vfs_lookup(&VFS_MAKE_REL_PATH(CPU_LOCAL_GET_CURRENT_THREAD()->common.process->cwd, pathname), &node) != VFS_RESULT_OK) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_NOENT); }
@@ -38,19 +38,19 @@ syscall_ret_t syscall_sys_open(syscall_args_t args) {
     fd_store_t* store = CPU_LOCAL_GET_CURRENT_THREAD()->common.process->fd_store;
     fd_data_t* fd_data = (fd_data_t*) heap_alloc(sizeof(fd_data_t));
     if(!fd_data) {
-        LOG_WARN("syscall_sys_open: Failed to allocate fd_data for open syscall\n");
+        LOG_WARN("Failed to allocate fd_data for open syscall\n");
         return SYSCALL_RET_ERROR(SYSCALL_ERROR_NOMEM);
     }
     fd_data->node = node;
     fd_data->cursor = 0;
     int fd = fd_store_allocate(store, fd_data);
     if(fd == -1) {
-        LOG_WARN("syscall_sys_open: Failed to allocate fd for open syscall\n");
+        LOG_WARN("Failed to allocate fd for open syscall\n");
         heap_free(fd_data, sizeof(fd_data_t));
         return SYSCALL_RET_ERROR(SYSCALL_ERROR_NOMEM);
     }
 
-    LOG_STRC("syscall_sys_open: fd=%lu\n", fd);
+    LOG_STRC("fd=%lu\n", fd);
     return SYSCALL_RET_VALUE(fd);
 }
 
@@ -59,7 +59,7 @@ syscall_ret_t syscall_sys_read(syscall_args_t args) {
     uint64_t fd = args.arg1;
     virt_addr_t buf = args.arg2;
     size_t count = args.arg3;
-    LOG_STRC("syscall_sys_read: pid=%lu, fd=%d, count=%lu\n", CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid, fd, count);
+    LOG_STRC("pid=%lu, fd=%d, count=%lu\n", CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid, fd, count);
 
     if(count == 0) { return SYSCALL_RET_VALUE(0); }
     if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, buf, count)) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT); }
@@ -89,7 +89,7 @@ syscall_ret_t syscall_sys_write(syscall_args_t args) {
     uint64_t fd = args.arg1;
     virt_addr_t buf = args.arg2;
     size_t count = args.arg3;
-    LOG_STRC("syscall_sys_write: pid=%lu, fd=%d, count=%lu\n", CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid, fd, count);
+    LOG_STRC("pid=%lu, fd=%d, count=%lu\n", CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid, fd, count);
 
     if(count == 0) { return SYSCALL_RET_VALUE(0); }
     if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, buf, count)) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT); }
@@ -117,7 +117,7 @@ syscall_ret_t syscall_sys_write(syscall_args_t args) {
 }
 
 syscall_ret_t syscall_sys_close(uint64_t fd) {
-    LOG_STRC("syscall_sys_close: pid=%lu, fd=%d\n", CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid, fd);
+    LOG_STRC("pid=%lu, fd=%d\n", CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid, fd);
     fd_store_t* store = CPU_LOCAL_GET_CURRENT_THREAD()->common.process->fd_store;
     if(!fd_store_close(store, fd)) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD); }
 
@@ -128,7 +128,7 @@ syscall_ret_t syscall_sys_seek(syscall_args_t args) {
     uint64_t fd = args.arg1;
     size_t offset = args.arg2;
     size_t whence = args.arg3;
-    LOG_STRC("syscall_sys_seek: pid=%lu, fd=%d, offset=%ld, whence=%d\n", CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid, fd, offset, whence);
+    LOG_STRC("pid=%lu, fd=%d, offset=%ld, whence=%d\n", CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid, fd, offset, whence);
 
     fd_store_t* store = CPU_LOCAL_GET_CURRENT_THREAD()->common.process->fd_store;
     fd_data_t* node = fd_store_get_fd(store, fd);
@@ -162,7 +162,7 @@ syscall_ret_t syscall_sys_seek(syscall_args_t args) {
 
 syscall_ret_t syscall_sys_is_a_tty(syscall_args_t args) {
     uint64_t fd = args.arg1;
-    LOG_STRC("syscall_sys_is_a_tty: pid=%lu, fd=%d\n", CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid, fd);
+    LOG_STRC("pid=%lu, fd=%d\n", CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid, fd);
 
     // @todo: STUB
     fd_store_t* store = CPU_LOCAL_GET_CURRENT_THREAD()->common.process->fd_store;
@@ -180,7 +180,7 @@ syscall_ret_t syscall_sys_get_cwd(syscall_args_t args) {
     virt_addr_t buf = args.arg1;
     size_t size = args.arg2;
 
-    LOG_INFO("syscall_sys_get_cwd: buf=%p, size=%lu\n", buf, size);
+    LOG_INFO("buf=%p, size=%lu\n", buf, size);
     process_t* process = CPU_LOCAL_GET_CURRENT_THREAD()->common.process;
 
     char* kernel_buf;
@@ -227,7 +227,7 @@ syscall_ret_t syscall_sys_stat(syscall_args_t args) {
     uint64_t fd = args.arg1;
     virt_addr_t statbuf = args.arg2;
 
-    LOG_INFO("syscall_sys_stat: pid=%lu, fd=%d\n", CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid, fd);
+    LOG_INFO("pid=%lu, fd=%d\n", CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid, fd);
     if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, statbuf, sizeof(structs_stat_t))) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT); }
 
     fd_store_t* store = CPU_LOCAL_GET_CURRENT_THREAD()->common.process->fd_store;
@@ -253,7 +253,7 @@ syscall_ret_t syscall_sys_stat_at(uint64_t fd, uint64_t path, size_t path_len, u
     vm_copy_from(pathname, CPU_LOCAL_GET_CURRENT_THREAD()->common.process->address_space, path, path_len);
     pathname[path_len] = '\0';
     process_t* process = CPU_LOCAL_GET_CURRENT_THREAD()->common.process;
-    LOG_INFO("syscall_sys_stat_at: pid=%lu, fd=%d, path=%s\n", process->pid, fd, pathname);
+    LOG_INFO("pid=%lu, fd=%d, path=%s\n", process->pid, fd, pathname);
 
     vfs_path_t vfs_path;
 

@@ -131,7 +131,7 @@ thread_t* sched_arch_thread_current() {
 }
 
 void sched_arch_context_switch(thread_t* t_current, thread_t* t_next) {
-    LOG_INFO("sched_arch_context_switch: current=%u, next=%u\n", t_current->tid, t_next->tid);
+    LOG_INFO("current=%u, next=%u\n", t_current->tid, t_next->tid);
     x86_64_thread_t* current = CONTAINER_OF(t_current, x86_64_thread_t, common);
     x86_64_thread_t* next = CONTAINER_OF(t_next, x86_64_thread_t, common);
 

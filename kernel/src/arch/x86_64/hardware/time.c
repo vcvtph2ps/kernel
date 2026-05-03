@@ -17,8 +17,8 @@ void time_init(void) {
     g_realtime_base_ns = g_bootloader_info.boot_timestamp * 1000000000ULL;
     g_realtime_mono_ref_ns = 0;
 
-    LOG_OKAY("time: monotonic clock initialised (boot_tsc=%llu, %u ticks/us)\n", (unsigned long long) g_boot_tsc, g_tsc_ticks_per_us);
-    LOG_OKAY("time: realtime seeded from boot_timestamp=%llu s\n", (unsigned long long) g_bootloader_info.boot_timestamp);
+    LOG_OKAY("monotonic clock initialised (boot_tsc=%llu, %u ticks/us)\n", (unsigned long long) g_boot_tsc, g_tsc_ticks_per_us);
+    LOG_OKAY("realtime seeded from boot_timestamp=%llu s\n", (unsigned long long) g_bootloader_info.boot_timestamp);
 }
 
 uint64_t time_monotonic_ns(void) {
@@ -35,5 +35,5 @@ uint64_t time_realtime_ns(void) {
 void time_sync_realtime(uint64_t unix_ns) {
     g_realtime_mono_ref_ns = time_monotonic_ns();
     g_realtime_base_ns = unix_ns;
-    LOG_OKAY("time: realtime synced to %llu ns\n", (unsigned long long) unix_ns);
+    LOG_OKAY("realtime synced to %llu ns\n", (unsigned long long) unix_ns);
 }

@@ -22,7 +22,7 @@ syscall_ret_t syscall_sys_vm_map(syscall_args_t args) {
     size_t fd = args.arg5;
     size_t offset = args.arg6;
 
-    LOG_STRC("vm_map: hint=%p size=%zu prot=0x%lx flags=0x%lx fd=%d offset=0x%lx\n", hint, size, prot, flags, fd, offset);
+    LOG_STRC("hint=%p size=%zu prot=0x%lx flags=0x%lx fd=%d offset=0x%lx\n", hint, size, prot, flags, fd, offset);
     assert((flags & (MAP_ANON)) != 0);
 
     vm_protection_t vm_prot = VM_PROT_RO;
@@ -61,7 +61,7 @@ syscall_ret_t syscall_sys_vm_protect(syscall_args_t args) {
 
     process_t* current_process = CPU_LOCAL_GET_CURRENT_THREAD()->common.process;
 
-    LOG_INFO("vm_protect: addr=%p size=%zu prot=%zu\n", addr, size, prot);
+    LOG_INFO("addr=%p size=%zu prot=%zu\n", addr, size, prot);
 
     vm_rewrite_prot(current_process->address_space, (void*) addr, size, vm_prot);
     return SYSCALL_RET_VALUE(0);

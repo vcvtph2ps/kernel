@@ -7,14 +7,14 @@
 
 syscall_ret_t syscall_sys_exit(syscall_args_t args) {
     uint64_t exit_code = args.arg1;
-    LOG_STRC("syscall_sys_exit: exit_code=%lu\n", exit_code);
+    LOG_STRC("exit_code=%lu\n", exit_code);
     sched_yield(THREAD_STATE_DEAD);
     return SYSCALL_RET_VALUE(0);
 }
 
 syscall_ret_t syscall_sys_set_tcb(syscall_args_t args) {
     uint64_t pointer = args.arg1;
-    LOG_STRC("syscall_sys_set_tcb: pointer=0x%lx\n", pointer);
+    LOG_STRC("pointer=0x%lx\n", pointer);
     arch_msr_write_msr(IA32_FS_BASE_MSR, pointer); // @safety: what safety lol
     return SYSCALL_RET_VALUE(0);
 }
@@ -22,7 +22,7 @@ syscall_ret_t syscall_sys_set_tcb(syscall_args_t args) {
 syscall_ret_t syscall_sys_debug_log(syscall_args_t args) {
     uint64_t buf = args.arg1;
     uint64_t count = args.arg2;
-    LOG_STRC("syscall_sys_debug_log: buf=0x%lx, count=%lu\n", buf, count);
+    LOG_STRC("buf=0x%lx, count=%lu\n", buf, count);
 
     if(LOG_LEVEL_MIN > LOG_LEVEL_DBGL) { return SYSCALL_RET_VALUE(0); }
     if(count == 0) { return SYSCALL_RET_VALUE(0); }
