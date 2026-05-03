@@ -230,6 +230,7 @@ void arch_lapic_init_bsp() {
 // @note: this function only exists because to read lapic id we need to have it setup
 void arch_lapic_init_ap_early() {
     apic_enable_mode_ap();
+    CPU_LOCAL_WRITE(lapic_id, arch_lapic_get_id());
 }
 void arch_lapic_init_ap() {
     CPU_LOCAL_WRITE(lapic_base_address, intrnal_lapic_get_base_address());

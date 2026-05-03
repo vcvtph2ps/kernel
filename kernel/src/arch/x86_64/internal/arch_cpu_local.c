@@ -11,9 +11,9 @@ static volatile arch_cpu_local_t g_bsp_cpu_local = {};
 arch_cpu_local_t* g_cpu_local_storage;
 uint32_t g_cpu_local_count;
 
-void init_cpu_local_data(arch_cpu_local_t* cpu_local, uint32_t core_id, uint32_t lapic_id) {
+void init_cpu_local_data(arch_cpu_local_t* cpu_local, uint32_t core_id) {
     cpu_local->core_id = core_id;
-    cpu_local->lapic_id = lapic_id;
+    cpu_local->lapic_id = 0;
     cpu_local->self = cpu_local;
     cpu_local->defered_work.queue = LIST_INIT;
     cpu_local->defered_work.counter = 0;
@@ -22,7 +22,7 @@ void init_cpu_local_data(arch_cpu_local_t* cpu_local, uint32_t core_id, uint32_t
 }
 
 void cpu_local_init_bsp() {
-    init_cpu_local_data((arch_cpu_local_t*) &g_bsp_cpu_local, 0, 0);
+    init_cpu_local_data((arch_cpu_local_t*) &g_bsp_cpu_local, 0);
     arch_msr_write_msr(IA32_GS_BASE_MSR, (uint64_t) &g_bsp_cpu_local);
 }
 
@@ -37,7 +37,7 @@ void cpu_local_init_storage(uint32_t core_count) {
 
 void cpu_local_init_ap(uint32_t core_id) {
     (void) core_id;
-    init_cpu_local_data(&g_cpu_local_storage[core_id], core_id, arch_lapic_get_id());
+    init_cpu_local_data(&g_cpu_local_storage[core_id], core_id);
     arch_msr_write_msr(IA32_GS_BASE_MSR, (uint64_t) &g_cpu_local_storage[core_id]);
 }
 

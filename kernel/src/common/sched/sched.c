@@ -46,7 +46,6 @@ void sched_init_bsp() {
     sched_arch_init_bsp();
 }
 
-
 void sched_yield(thread_state_t yield_state) {
     uint64_t previous_state = arch_disable_interupts();
 
