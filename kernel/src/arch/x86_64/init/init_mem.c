@@ -2,6 +2,7 @@
 #include <common/init.h>
 #include <lib/log.h>
 #include <memory/heap.h>
+#include <memory/pagedb.h>
 #include <memory/pmm.h>
 #include <memory/ptm.h>
 #include <memory/slab.h>
@@ -11,6 +12,8 @@ void init_stage_base_mem(uint32_t core_id) {
         log_init();
         cpu_local_init_early();
         pmm_init();
+        pagedb_init_early();
+        ptm_init_kernel(core_id);
         log_init_framebuffer();
         slab_cache_init();
         heap_init();

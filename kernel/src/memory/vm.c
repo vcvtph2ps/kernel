@@ -523,6 +523,13 @@ rb_tree_t vm_create_regions() {
     return ((rb_tree_t) { .value_of_node = vm_value_of_node, .root = nullptr });
 }
 
+bool vm_find_hole(vm_address_space_t* address_space, size_t length, uintptr_t* out) {
+    spinlock_nodw_lock(&address_space->lock);
+    bool ok = find_hole(address_space, VM_NO_HINT, length, PAGE_SIZE_DEFAULT, out);
+    spinlock_nodw_unlock(&address_space->lock);
+    return ok;
+}
+
 void vm_fault_dw(void* data) {
     thread_t* thread = data;
     assert(thread->vm_fault.in_process);

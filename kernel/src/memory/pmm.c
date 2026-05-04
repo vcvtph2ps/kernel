@@ -3,6 +3,7 @@
 #include <common/boot/bootloader.h>
 #include <log.h>
 #include <memory/memory.h>
+#include <memory/pagedb.h>
 #include <memory/pmm.h>
 #include <spinlock.h>
 #include <stddef.h>
@@ -20,11 +21,15 @@ static pmm_node_t* g_pmm_head;
 void pmm_init(void) {
     for(size_t i = 0; i < g_bootloader_info.mmap_entry_count; i++) {
         bootloader_mmap_entry_t entry;
-        if(!bootloader_get_mmap_entry(i, &entry)) { continue; }
+        if(!bootloader_get_mmap_entry(i, &entry)) {
+            continue;
+        }
 
         LOG_INFO("%s, 0x%016lx - 0x%016lx (%lx)\n", bootloader_memmap_type_to_str(entry.type), entry.base, entry.base + entry.length, entry.length);
 
-        if(entry.type != BOOTLOADER_MMAP_USABLE) { continue; }
+        if(entry.type != BOOTLOADER_MMAP_USABLE) {
+            continue;
+        }
 
         assert((entry.base % PAGE_SIZE_DEFAULT) == 0);
         assert(((entry.base + entry.length) % PAGE_SIZE_DEFAULT) == 0);
@@ -50,8 +55,18 @@ void pmm_init(void) {
     g_pmm_head = g_pmm_head->next;
     spinlock_nodw_unlock(&g_pmm_lock);
 
-    if(flags & PMM_FLAG_ZERO) { memset(current, 0, PAGE_SIZE_DEFAULT); }
-    return (phys_addr_t) FROM_HHDM(current);
+    if(flags & PMM_FLAG_ZERO) {
+        memset(current, 0, PAGE_SIZE_DEFAULT);
+    }
+
+    phys_addr_t paddr = (phys_addr_t) FROM_HHDM(current);
+
+    pagedb_page_t* entry = pagedb_get_for_phys(paddr);
+    if(entry != nullptr) {
+        __atomic_fetch_add(&entry->ref_count, 1, __ATOMIC_RELAXED);
+    }
+
+    return paddr;
 }
 
 /**
@@ -60,6 +75,13 @@ void pmm_init(void) {
  */
 void pmm_free_page(phys_addr_t addr) {
     assert((addr % PAGE_SIZE_DEFAULT) == 0);
+
+    pagedb_page_t* entry = pagedb_get_for_phys(addr);
+    if(entry != nullptr) {
+        uint32_t prev = __atomic_fetch_sub(&entry->ref_count, 1, __ATOMIC_RELAXED);
+        if(prev > 1) return;
+    }
+
     pmm_node_t* node = (pmm_node_t*) TO_HHDM(addr);
 
     spinlock_nodw_lock(&g_pmm_lock);

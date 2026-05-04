@@ -8,6 +8,7 @@
 #include <common/interrupts/interrupt.h>
 #include <log.h>
 #include <memory/memory.h>
+#include <memory/pagedb.h>
 #include <memory/pmm.h>
 #include <memory/ptm.h>
 #include <memory/vm.h>
@@ -47,6 +48,7 @@
 #define PAT7(PAT_FLAG) ((PAT_FLAG) | PAGE_BIT_DISABLECACHE | PAGE_BIT_WRITETHROUGH)
 
 extern vm_address_space_t* g_vm_global_address_space;
+static vm_region_t g_pagedb_region;
 static vm_region_t g_kernel_region;
 
 static bool g_pat_supported = false;
@@ -456,6 +458,36 @@ void ptm_init_kernel(uint32_t core_id) {
 
     ptm_load_address_space(g_vm_global_address_space);
     LOG_OKAY("Loaded ptm address space and didn't page fault!!\n");
+
+    {
+        size_t array_bytes = pagedb_byte_size();
+
+        uintptr_t vbase;
+        if(!vm_find_hole(g_vm_global_address_space, array_bytes, &vbase)) arch_panic("pagedb: no VA hole for %zu KiB\n", array_bytes / 1024);
+
+        LOG_INFO("pagedb: mapping %zu KiB at 0x%lx\n", array_bytes / 1024, vbase);
+
+        for(size_t off = 0; off < array_bytes; off += PAGE_SIZE_DEFAULT) {
+            phys_addr_t page = pmm_alloc_page(PMM_FLAG_ZERO);
+            ptm_map(g_vm_global_address_space, vbase + off, page, PAGE_SIZE_DEFAULT, VM_PROT_RW, VM_CACHE_NORMAL, VM_PRIVILEGE_KERNEL, true);
+        }
+
+        g_pagedb_region.address_space = g_vm_global_address_space;
+        g_pagedb_region.base = vbase;
+        g_pagedb_region.length = array_bytes;
+        g_pagedb_region.protection = VM_PROT_RW;
+        g_pagedb_region.cache = VM_CACHE_NORMAL;
+        g_pagedb_region.dynamically_backed = false;
+        g_pagedb_region.type = VM_REGION_TYPE_DIRECT;
+        g_pagedb_region.type_data.direct.physical_address = 0;
+
+        spinlock_nodw_lock(&g_vm_global_address_space->lock);
+        rb_insert(&g_vm_global_address_space->regions_tree, &g_pagedb_region.region_tree_node);
+        spinlock_nodw_unlock(&g_vm_global_address_space->lock);
+
+        pagedb_init_late(vbase, array_bytes);
+    }
+
 
     for(size_t i = 0; i < g_bootloader_info.framebuffer_count; i++) {
         bootloader_framebuffer_info_t framebuffer;
