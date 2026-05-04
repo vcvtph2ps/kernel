@@ -29,13 +29,17 @@ tty_t* tty_init() {
 void tty_put_byte(tty_t* tty, uint8_t byte) {
     spinlock_nodw_lock(&tty->lock);
 
-    if(tty->input_buffer_size < tty->input_buffer_capacity) { tty->input_buffer[tty->input_buffer_size] = byte; }
+    if(tty->input_buffer_size < tty->input_buffer_capacity) {
+        tty->input_buffer[tty->input_buffer_size] = byte;
+    }
 
     if(byte == '\n') {
         if(tty->input_buffer_size < tty->input_buffer_capacity) tty->input_buffer_size++;
         wait_queue_wake_one(&tty->wait_queue);
     } else if(byte == '\b') {
-        if(tty->input_buffer_size > 0) { tty->input_buffer_size--; }
+        if(tty->input_buffer_size > 0) {
+            tty->input_buffer_size--;
+        }
     } else if(byte == ('u' & 0x1f)) {
         tty->input_buffer_size = 0;
     } else {
@@ -58,7 +62,9 @@ void tty_wait_for(tty_t* tty) {
 }
 
 char* tty_read(tty_t* tty, size_t* size) {
-    if(size == nullptr) { return nullptr; }
+    if(size == nullptr) {
+        return nullptr;
+    }
     // @todo: check if the current process is the process that owns this tty
     spinlock_nodw_lock(&tty->lock);
     if(tty->input_buffer_size == 0) {

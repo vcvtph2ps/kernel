@@ -38,7 +38,9 @@ static size_t futex_hash(process_t* proc, uintptr_t uaddr) {
 
 static futex_entry_t* futex_find(process_t* proc, uintptr_t uaddr) {
     uintptr_t target_phys;
-    if(!ptm_physical(proc->address_space, uaddr, &target_phys)) { return nullptr; }
+    if(!ptm_physical(proc->address_space, uaddr, &target_phys)) {
+        return nullptr;
+    }
     list_t* bucket = hashmap_bucket(&g_futex_map, futex_hash(proc, target_phys));
     list_node_t* node = bucket->head;
 
@@ -57,7 +59,9 @@ static futex_entry_t* futex_find_or_create(process_t* proc, uintptr_t uaddr) {
     entry = (futex_entry_t*) heap_alloc(sizeof(futex_entry_t));
     if(entry == nullptr) return nullptr;
     uintptr_t target_phys;
-    if(!ptm_physical(proc->address_space, uaddr, &target_phys)) { return nullptr; }
+    if(!ptm_physical(proc->address_space, uaddr, &target_phys)) {
+        return nullptr;
+    }
 
     entry->phys_addr = target_phys;
     entry->proc = proc;
@@ -68,7 +72,9 @@ static futex_entry_t* futex_find_or_create(process_t* proc, uintptr_t uaddr) {
 }
 
 void sys_futex_init() {
-    if(!hashmap_init(&g_futex_map, FUTEX_BUCKETS)) { arch_panic("Failed to initialize futex hashmap\n"); }
+    if(!hashmap_init(&g_futex_map, FUTEX_BUCKETS)) {
+        arch_panic("Failed to initialize futex hashmap\n");
+    }
 }
 
 void sys_futex_check_timeouts(void) {
@@ -102,7 +108,9 @@ void sys_futex_check_timeouts(void) {
 static syscall_ret_t futex_wait(uintptr_t uaddr, int32_t val, structs_timespec_t* timeout_struct) {
     uint64_t deadline_ns = 0;
     if(timeout_struct != nullptr) {
-        if(timeout_struct->tv_sec < 0 || timeout_struct->tv_nsec < 0 || timeout_struct->tv_nsec >= 1000000000L) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_INVAL); }
+        if(timeout_struct->tv_sec < 0 || timeout_struct->tv_nsec < 0 || timeout_struct->tv_nsec >= 1000000000L) {
+            return SYSCALL_RET_ERROR(SYSCALL_ERROR_INVAL);
+        }
         uint64_t timeout_ns = (uint64_t) timeout_struct->tv_sec * 1000000000ULL + (uint64_t) timeout_struct->tv_nsec;
         deadline_ns = time_monotonic_ns() + timeout_ns;
     }
@@ -173,7 +181,9 @@ static syscall_ret_t futex_wake(uintptr_t uaddr, int32_t val, structs_timespec_t
     if(entry != nullptr) {
         while(val < 0 || woken < val) {
             list_node_t* node = list_pop(&entry->wq.threads);
-            if(!node) { break; }
+            if(!node) {
+                break;
+            }
 
             thread_t* thread = CONTAINER_OF(node, thread_t, list_node_wait_queue);
 
@@ -200,13 +210,17 @@ syscall_ret_t syscall_sys_futex(syscall_args_t args) {
     uintptr_t timeout_ptr = args.arg4;
 
     process_t* proc = CPU_LOCAL_GET_CURRENT_THREAD()->common.process;
-    if(!userspace_validate_buffer(proc, uaddr, sizeof(int32_t))) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT); }
+    if(!userspace_validate_buffer(proc, uaddr, sizeof(int32_t))) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT);
+    }
 
 
     structs_timespec_t timeout_buf = {};
     structs_timespec_t* timeout = nullptr;
     if(timeout_ptr != 0) {
-        if(!userspace_validate_buffer(proc, timeout_ptr, sizeof(structs_timespec_t))) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT); }
+        if(!userspace_validate_buffer(proc, timeout_ptr, sizeof(structs_timespec_t))) {
+            return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT);
+        }
         vm_copy_from(&timeout_buf, proc->address_space, timeout_ptr, sizeof(structs_timespec_t));
         timeout = &timeout_buf;
     }

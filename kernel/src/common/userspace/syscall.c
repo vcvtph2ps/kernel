@@ -40,7 +40,9 @@ const char* userspace_syscall_number_to_string(syscall_nr_t nr) {
 }
 
 const char* userspace_syscall_ret_to_string(syscall_ret_t ret) {
-    if(!ret.is_error) { return "SUCCESS"; }
+    if(!ret.is_error) {
+        return "SUCCESS";
+    }
     switch(ret.err) {
         case SYSCALL_ERROR_NOENT: return "ERROR_NOENT";
         case SYSCALL_ERROR_NOMEM: return "ERROR_NOMEM";
@@ -86,7 +88,9 @@ void syscall_init() {
     arch_syscall_init();
     sys_futex_init();
 
-    for(size_t i = 0; i < SYSCALL_HIGHEST_NR; i++) { g_syscall_table[i].handler = syscall_sys_invalid; }
+    for(size_t i = 0; i < SYSCALL_HIGHEST_NR; i++) {
+        g_syscall_table[i].handler = syscall_sys_invalid;
+    }
 
     SYSCALL_DISPATCHER(SYSCALL_SYS_EXIT, syscall_sys_exit);
     SYSCALL_DISPATCHER(SYSCALL_DEBUG_LOG, syscall_sys_debug_log);
@@ -112,11 +116,15 @@ void syscall_init() {
 }
 
 bool userspace_validate_buffer(process_t* proc, virt_addr_t addr, size_t size) {
-    if(addr < proc->address_space->start || addr + size > proc->address_space->end) { return false; }
+    if(addr < proc->address_space->start || addr + size > proc->address_space->end) {
+        return false;
+    }
 
     for(virt_addr_t i = addr; i < addr + size; i += PAGE_SIZE_DEFAULT) {
         phys_addr_t phys;
-        if(!ptm_physical(proc->address_space, i, &phys)) { return false; }
+        if(!ptm_physical(proc->address_space, i, &phys)) {
+            return false;
+        }
     }
 
     return true;

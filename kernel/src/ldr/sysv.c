@@ -42,8 +42,12 @@ typedef struct {
 
 virt_addr_t create_info_block(vm_address_space_t* address_space, size_t argc, size_t envc, char** argv, char** envp, size_t* out_size_of_info_block, sysv_info_block_out_t* info_block) {
     size_t size_of_info_block = 0;
-    for(size_t i = 0; i < argc; i++) { size_of_info_block += strlen(argv[i]) + 1; }
-    for(size_t i = 0; i < envc; i++) { size_of_info_block += strlen(envp[i]) + 1; }
+    for(size_t i = 0; i < argc; i++) {
+        size_of_info_block += strlen(argv[i]) + 1;
+    }
+    for(size_t i = 0; i < envc; i++) {
+        size_of_info_block += strlen(envp[i]) + 1;
+    }
 
     //@todo: the +1's are a little hack to prevent allocating 0 bytes
     uintptr_t* argv_p = heap_alloc(sizeof(uintptr_t) * (argc + 1));
@@ -57,7 +61,9 @@ virt_addr_t create_info_block(vm_address_space_t* address_space, size_t argc, si
     }
 
     uintptr_t arg_block = (uintptr_t) vm_map_anon(address_space, VM_NO_HINT, ALIGN_UP(size_of_info_block, PAGE_SIZE_DEFAULT), VM_PROT_RW, VM_CACHE_NORMAL, VM_FLAG_ZERO);
-    if(arg_block == 0) { return 0; }
+    if(arg_block == 0) {
+        return 0;
+    }
     uintptr_t offset = 0;
 
 
@@ -98,9 +104,13 @@ virt_addr_t sysv_user_stack_init(vm_address_space_t* address_space, virt_addr_t 
     }
 
     insert_u64(stack_buf, argc); // argc
-    for(size_t i = 0; i < argc; i++) { insert_u64(stack_buf, info_block.argv_p[i]); }
+    for(size_t i = 0; i < argc; i++) {
+        insert_u64(stack_buf, info_block.argv_p[i]);
+    }
     insert_u64(stack_buf, 0); // argv null
-    for(size_t i = 0; i < envc; i++) { insert_u64(stack_buf, info_block.envp_p[i]); }
+    for(size_t i = 0; i < envc; i++) {
+        insert_u64(stack_buf, info_block.envp_p[i]);
+    }
     insert_u64(stack_buf, 0); // envp null
 
     heap_free(info_block.argv_p, sizeof(uintptr_t) * (argc + 1));
@@ -110,7 +120,9 @@ virt_addr_t sysv_user_stack_init(vm_address_space_t* address_space, virt_addr_t 
     insert_auxv(stack_buf, AUXV_PHENT, loader_info->phentsize);
     insert_auxv(stack_buf, AUXV_PHNUM, loader_info->phnum);
     insert_auxv(stack_buf, AUXV_PAGESZ, PAGE_SIZE_DEFAULT);
-    if(loader_info->interp_base != 0) { insert_auxv(stack_buf, AUXV_BASE, loader_info->interp_base); }
+    if(loader_info->interp_base != 0) {
+        insert_auxv(stack_buf, AUXV_BASE, loader_info->interp_base);
+    }
     insert_auxv(stack_buf, AUXV_ENTRY, loader_info->image_entry_point);
     insert_u64(stack_buf, AUXV_NULL);
 

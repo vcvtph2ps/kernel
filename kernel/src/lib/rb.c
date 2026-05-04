@@ -32,7 +32,9 @@ static void set_node_child(rb_node_t* node, rb_direction_t direction, rb_node_t*
 }
 
 static bool safe_node_red_check(rb_node_t* node) {
-    if(node == nullptr) { return false; }
+    if(node == nullptr) {
+        return false;
+    }
 
     return node->color == RB_COLOR_RED;
 }
@@ -53,7 +55,9 @@ static rb_node_t* rotate(rb_tree_t* tree, rb_node_t* node, rb_direction_t direct
     rb_node_t* new_root = get_node_child(node, opposite_direction(direction));
 
     set_node_child(node, opposite_direction(direction), get_node_child(new_root, direction));
-    if(get_node_child(node, opposite_direction(direction)) != nullptr) { get_node_child(node, opposite_direction(direction))->parent = node; }
+    if(get_node_child(node, opposite_direction(direction)) != nullptr) {
+        get_node_child(node, opposite_direction(direction))->parent = node;
+    }
 
     set_node_child(new_root, direction, node);
     node->parent = new_root;
@@ -242,7 +246,9 @@ rb_node_t* rb_find_first(rb_tree_t* tree) {
     rb_node_t* current = tree->root;
     if(current == nullptr) return nullptr;
 
-    while(current->left != nullptr) { current = current->left; }
+    while(current->left != nullptr) {
+        current = current->left;
+    }
 
     return current;
 }

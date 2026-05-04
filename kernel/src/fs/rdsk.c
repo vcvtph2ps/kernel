@@ -240,7 +240,9 @@ vfs_result_t rdsk_umount(vfs_t* vfs) {
 
 vfs_result_t rdsk_mount(vfs_t* vfs) {
     rdsk_header_t* header = (rdsk_header_t*) vfs->private_data;
-    if(header->revision != MAKE_RDSK_VERSION(1, 1)) { return VFS_RESULT_ERR_UNSUPPORTED; }
+    if(header->revision != MAKE_RDSK_VERSION(1, 1)) {
+        return VFS_RESULT_ERR_UNSUPPORTED;
+    }
 
     info_t* info = heap_alloc(sizeof(info_t));
     info->header = header;

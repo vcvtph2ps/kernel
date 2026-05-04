@@ -27,7 +27,9 @@ void buffer_append(buffer_t* buffer, const void* data, size_t size) {
 }
 
 void buffer_slice(buffer_t* buffer, size_t offset, size_t size) {
-    if(offset + size > buffer->size) { return; }
+    if(offset + size > buffer->size) {
+        return;
+    }
 
     memmove(buffer->data, buffer->data + offset, size);
     buffer->size = size;

@@ -7,7 +7,9 @@ bool hashmap_init(hashmap_t* map, size_t bucket_count) {
     map->buckets = (list_t*) heap_alloc(sizeof(list_t) * bucket_count);
     if(map->buckets == nullptr) return false;
     map->bucket_count = bucket_count;
-    for(size_t i = 0; i < bucket_count; i++) { map->buckets[i] = LIST_INIT; }
+    for(size_t i = 0; i < bucket_count; i++) {
+        map->buckets[i] = LIST_INIT;
+    }
     return true;
 }
 

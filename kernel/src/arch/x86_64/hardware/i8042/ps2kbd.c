@@ -43,13 +43,17 @@ static bool g_rctrl_pressed = false;
 static dw_item_t* g_ps2kbd_dw_item;
 
 char translate_next_scancode() {
-    if(g_scancode_ring_buffer_tail == g_scancode_ring_buffer_head) { return 0; }
+    if(g_scancode_ring_buffer_tail == g_scancode_ring_buffer_head) {
+        return 0;
+    }
     bool prefixed = false;
     uint8_t scancode = g_scancode_ring_buffer[g_scancode_ring_buffer_tail];
     if(scancode == 0xE0) {
         prefixed = true;
         size_t next_index = (g_scancode_ring_buffer_tail + 1) % SCANCODE_RING_BUFFER_SIZE;
-        if(next_index == g_scancode_ring_buffer_head) { return 0; }
+        if(next_index == g_scancode_ring_buffer_head) {
+            return 0;
+        }
         scancode = g_scancode_ring_buffer[next_index];
         g_scancode_ring_buffer_tail = next_index;
     }
@@ -108,7 +112,9 @@ void ps2kbd_dw_handler(void* data) {
 
 void arch_ps2kbd_init(arch_i8042_port_t port) {
     uint8_t vector = vector_alloc_interrupt();
-    if(vector == 0) { arch_panic("Failed to allocate interrupt vector for PS2 keyboard\n"); }
+    if(vector == 0) {
+        arch_panic("Failed to allocate interrupt vector for PS2 keyboard\n");
+    }
     LOG_INFO("interrupt vector @ 0x%x\n", vector);
 
     g_ps2kbd_dw_item = dw_create(ps2kbd_dw_handler, nullptr);

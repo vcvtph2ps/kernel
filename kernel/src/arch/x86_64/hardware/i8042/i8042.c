@@ -101,7 +101,7 @@ static inline bool port_initialize(arch_i8042_port_t port) {
 
     if(!wait_read()) return false;
     uint8_t reset = arch_io_port_read_u8(I8042_PORT_DATA);
-    
+
     // Flush any extra bytes sent during reset (e.g. mouse sends 0x00)
     while(arch_io_port_read_u8(I8042_PORT_CMD_STATUS) & I8042_STATUS_RDYREAD) {
         arch_io_port_read_u8(I8042_PORT_DATA);

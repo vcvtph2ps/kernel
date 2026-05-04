@@ -138,7 +138,9 @@ void slab_cache_destroy(slab_cache_t* cache) {
 
 
 void* slab_cache_alloc(slab_cache_t* cache) {
-    if(!cache->cpu_cached) { return slab_cache_alloc_from_slab(cache); }
+    if(!cache->cpu_cached) {
+        return slab_cache_alloc_from_slab(cache);
+    }
 
     sched_preempt_disable();
     dw_status_disable();

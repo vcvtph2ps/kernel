@@ -13,7 +13,9 @@ fd_store_t* fd_store_create() {
 }
 
 void fd_store_free(fd_store_t* fd_store) {
-    for(size_t i = 0; i < fd_store->size; i++) { fd_store_close(fd_store, i); }
+    for(size_t i = 0; i < fd_store->size; i++) {
+        fd_store_close(fd_store, i);
+    }
 
     if(fd_store->fds) heap_free(fd_store->fds, fd_store->size * sizeof(fd_data_t*));
     heap_free(fd_store, sizeof(fd_store_t));
@@ -45,8 +47,12 @@ int fd_store_allocate(fd_store_t* fd_store, fd_data_t* node) {
 }
 
 bool fd_store_close(fd_store_t* fd_store, size_t index) {
-    if(index >= fd_store->size) { return false; }
-    if(fd_store->fds[index] == nullptr) { return false; }
+    if(index >= fd_store->size) {
+        return false;
+    }
+    if(fd_store->fds[index] == nullptr) {
+        return false;
+    }
 
     fd_data_t* node = fd_store->fds[index];
     fd_store->fds[index] = nullptr;

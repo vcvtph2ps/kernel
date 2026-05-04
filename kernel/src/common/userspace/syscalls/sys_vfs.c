@@ -23,8 +23,12 @@ syscall_ret_t syscall_sys_open(syscall_args_t args) {
     (void) flags; // @todo:
     (void) mode; // @todo:
 
-    if(pathname_len == 0 || pathname_len > 256) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_INVAL); }
-    if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, pathname_str, pathname_len)) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT); }
+    if(pathname_len == 0 || pathname_len > 256) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_INVAL);
+    }
+    if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, pathname_str, pathname_len)) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT);
+    }
 
     char pathname[256];
     memcpy(pathname, (const void*) pathname_str, pathname_len);
@@ -33,7 +37,9 @@ syscall_ret_t syscall_sys_open(syscall_args_t args) {
     LOG_STRC("pid=%lu, pathname=%s\n", CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid, pathname);
 
     vfs_node_t* node;
-    if(vfs_lookup(&VFS_MAKE_REL_PATH(CPU_LOCAL_GET_CURRENT_THREAD()->common.process->cwd, pathname), &node) != VFS_RESULT_OK) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_NOENT); }
+    if(vfs_lookup(&VFS_MAKE_REL_PATH(CPU_LOCAL_GET_CURRENT_THREAD()->common.process->cwd, pathname), &node) != VFS_RESULT_OK) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_NOENT);
+    }
 
     fd_store_t* store = CPU_LOCAL_GET_CURRENT_THREAD()->common.process->fd_store;
     fd_data_t* fd_data = (fd_data_t*) heap_alloc(sizeof(fd_data_t));
@@ -61,25 +67,39 @@ syscall_ret_t syscall_sys_read(syscall_args_t args) {
     size_t count = args.arg3;
     LOG_STRC("pid=%lu, fd=%d, count=%lu\n", CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid, fd, count);
 
-    if(count == 0) { return SYSCALL_RET_VALUE(0); }
-    if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, buf, count)) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT); }
+    if(count == 0) {
+        return SYSCALL_RET_VALUE(0);
+    }
+    if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, buf, count)) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT);
+    }
 
     fd_store_t* store = CPU_LOCAL_GET_CURRENT_THREAD()->common.process->fd_store;
     fd_data_t* node = fd_store_get_fd(store, fd);
-    if(!node) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD); }
-    if(!node->node) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD); }
-    if(node->node->type == VFS_NODE_TYPE_DIR) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD); }
+    if(!node) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD);
+    }
+    if(!node->node) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD);
+    }
+    if(node->node->type == VFS_NODE_TYPE_DIR) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD);
+    }
 
     // @hack: yield might clear uap flag. so we need to do some dumbass shit
     void* kernel_buffer = heap_alloc(count);
-    if(kernel_buffer == nullptr) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_NOMEM); }
+    if(kernel_buffer == nullptr) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_NOMEM);
+    }
     size_t read_count = 0;
     vfs_result_t result = node->node->ops->read(node->node, kernel_buffer, count, node->cursor, &read_count);
 
     vm_copy_to(CPU_LOCAL_GET_CURRENT_THREAD()->common.process->address_space, buf, kernel_buffer, read_count);
     heap_free(kernel_buffer, count);
 
-    if(result != VFS_RESULT_OK) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD); }
+    if(result != VFS_RESULT_OK) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD);
+    }
 
     node->cursor += read_count;
     return SYSCALL_RET_VALUE(read_count);
@@ -91,14 +111,24 @@ syscall_ret_t syscall_sys_write(syscall_args_t args) {
     size_t count = args.arg3;
     LOG_STRC("pid=%lu, fd=%d, count=%lu\n", CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid, fd, count);
 
-    if(count == 0) { return SYSCALL_RET_VALUE(0); }
-    if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, buf, count)) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT); }
+    if(count == 0) {
+        return SYSCALL_RET_VALUE(0);
+    }
+    if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, buf, count)) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT);
+    }
 
     fd_store_t* store = CPU_LOCAL_GET_CURRENT_THREAD()->common.process->fd_store;
     fd_data_t* node = fd_store_get_fd(store, fd);
-    if(!node) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD); }
-    if(!node->node) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD); }
-    if(node->node->type == VFS_NODE_TYPE_DIR) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD); }
+    if(!node) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD);
+    }
+    if(!node->node) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD);
+    }
+    if(node->node->type == VFS_NODE_TYPE_DIR) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD);
+    }
 
     // @hack: yield might clear uap flag. so we need to do some dumbass shit
     void* kernel_buffer = heap_alloc(count);
@@ -119,7 +149,9 @@ syscall_ret_t syscall_sys_write(syscall_args_t args) {
 syscall_ret_t syscall_sys_close(uint64_t fd) {
     LOG_STRC("pid=%lu, fd=%d\n", CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid, fd);
     fd_store_t* store = CPU_LOCAL_GET_CURRENT_THREAD()->common.process->fd_store;
-    if(!fd_store_close(store, fd)) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD); }
+    if(!fd_store_close(store, fd)) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD);
+    }
 
     return SYSCALL_RET_VALUE(0);
 }
@@ -132,13 +164,23 @@ syscall_ret_t syscall_sys_seek(syscall_args_t args) {
 
     fd_store_t* store = CPU_LOCAL_GET_CURRENT_THREAD()->common.process->fd_store;
     fd_data_t* node = fd_store_get_fd(store, fd);
-    if(!node) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD); }
-    if(!node->node) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD); }
-    if(node->node->type == VFS_NODE_TYPE_DIR) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD); }
-    if(node->node->type == VFS_NODE_TYPE_CHARDEV) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_SPIPE); }
+    if(!node) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD);
+    }
+    if(!node->node) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD);
+    }
+    if(node->node->type == VFS_NODE_TYPE_DIR) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD);
+    }
+    if(node->node->type == VFS_NODE_TYPE_CHARDEV) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_SPIPE);
+    }
     int64_t signed_offset = (int64_t) offset;
     vfs_node_attr_t node_attr;
-    if(node->node->ops->attr(node->node, &node_attr) != VFS_RESULT_OK) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_SPIPE); }
+    if(node->node->ops->attr(node->node, &node_attr) != VFS_RESULT_OK) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_SPIPE);
+    }
 
     int64_t signed_file_size = (int64_t) node_attr.size;
 
@@ -154,7 +196,9 @@ syscall_ret_t syscall_sys_seek(syscall_args_t args) {
     }
 
     LOG_STRC("new_cursor=%ld, file size=%ld\n", new_cursor, signed_file_size);
-    if(new_cursor < 0 || new_cursor > signed_file_size) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_RANGE); }
+    if(new_cursor < 0 || new_cursor > signed_file_size) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_RANGE);
+    }
     node->cursor = new_cursor;
 
     return SYSCALL_RET_VALUE(0);
@@ -167,11 +211,19 @@ syscall_ret_t syscall_sys_is_a_tty(syscall_args_t args) {
     // @todo: STUB
     fd_store_t* store = CPU_LOCAL_GET_CURRENT_THREAD()->common.process->fd_store;
     fd_data_t* node = fd_store_get_fd(store, fd);
-    if(!node) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD); }
-    if(!node->node) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD); }
-    if(node->node->type == VFS_NODE_TYPE_DIR) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD); }
+    if(!node) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD);
+    }
+    if(!node->node) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD);
+    }
+    if(node->node->type == VFS_NODE_TYPE_DIR) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD);
+    }
     // @todo: NOT ALL CHAR DEVS ARE TTYS
-    if(node->node->type == VFS_NODE_TYPE_CHARDEV) { return SYSCALL_RET_VALUE(0); }
+    if(node->node->type == VFS_NODE_TYPE_CHARDEV) {
+        return SYSCALL_RET_VALUE(0);
+    }
 
     return SYSCALL_RET_ERROR(SYSCALL_ERROR_NOTTY);
 }
@@ -186,10 +238,14 @@ syscall_ret_t syscall_sys_get_cwd(syscall_args_t args) {
     char* kernel_buf;
     size_t kernel_buf_size;
     vfs_result_t res = vfs_path_to(process->cwd, &kernel_buf, &kernel_buf_size);
-    if(res != VFS_RESULT_OK) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT); }
+    if(res != VFS_RESULT_OK) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT);
+    }
 
     size_t cwd_len = strlen(kernel_buf) + 1;
-    if(cwd_len > size) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_RANGE); }
+    if(cwd_len > size) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_RANGE);
+    }
 
     vm_copy_to(process->address_space, buf, kernel_buf, cwd_len);
 
@@ -228,26 +284,40 @@ syscall_ret_t syscall_sys_stat(syscall_args_t args) {
     virt_addr_t statbuf = args.arg2;
 
     LOG_STRC("pid=%lu, fd=%d\n", CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid, fd);
-    if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, statbuf, sizeof(structs_stat_t))) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT); }
+    if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, statbuf, sizeof(structs_stat_t))) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT);
+    }
 
     fd_store_t* store = CPU_LOCAL_GET_CURRENT_THREAD()->common.process->fd_store;
     fd_data_t* node = fd_store_get_fd(store, fd);
-    if(!node) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD); }
-    if(!node->node) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD); }
+    if(!node) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD);
+    }
+    if(!node->node) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD);
+    }
 
     structs_stat_t buf;
     syscall_ret_t ret = stat_internal(&buf, node->node);
-    if(ret.is_error) { return ret; }
+    if(ret.is_error) {
+        return ret;
+    }
     vm_copy_to(CPU_LOCAL_GET_CURRENT_THREAD()->common.process->address_space, statbuf, &buf, sizeof(structs_stat_t));
     return ret;
 }
 
 syscall_ret_t syscall_sys_stat_at(uint64_t fd, uint64_t path, size_t path_len, uint64_t statbuf, size_t flag) {
     (void) flag;
-    if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, statbuf, sizeof(structs_stat_t))) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT); }
+    if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, statbuf, sizeof(structs_stat_t))) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT);
+    }
 
-    if(path_len == 0 || path_len > 256) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_INVAL); }
-    if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, path, path_len)) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT); }
+    if(path_len == 0 || path_len > 256) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_INVAL);
+    }
+    if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, path, path_len)) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT);
+    }
 
     char pathname[256];
     vm_copy_from(pathname, CPU_LOCAL_GET_CURRENT_THREAD()->common.process->address_space, path, path_len);
@@ -266,8 +336,12 @@ syscall_ret_t syscall_sys_stat_at(uint64_t fd, uint64_t path, size_t path_len, u
         } else {
             fd_store_t* store = process->fd_store;
             fd_data_t* node = fd_store_get_fd(store, fd);
-            if(!node) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD); }
-            if(!node->node) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD); }
+            if(!node) {
+                return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD);
+            }
+            if(!node->node) {
+                return SYSCALL_RET_ERROR(SYSCALL_ERROR_BADFD);
+            }
             vfs_path.node = node->node;
         }
         vfs_path.rel_path = pathname;
@@ -275,11 +349,15 @@ syscall_ret_t syscall_sys_stat_at(uint64_t fd, uint64_t path, size_t path_len, u
 
     vfs_node_t* result_node;
     vfs_result_t res = vfs_lookup(&vfs_path, &result_node);
-    if(res != VFS_RESULT_OK) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_NOENT); }
+    if(res != VFS_RESULT_OK) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_NOENT);
+    }
 
     structs_stat_t buf;
     syscall_ret_t ret = stat_internal(&buf, result_node);
-    if(ret.is_error) { return ret; }
+    if(ret.is_error) {
+        return ret;
+    }
     vm_copy_to(CPU_LOCAL_GET_CURRENT_THREAD()->common.process->address_space, statbuf, &buf, sizeof(structs_stat_t));
     return ret;
 }

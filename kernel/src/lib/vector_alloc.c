@@ -25,7 +25,9 @@ uint8_t vector_alloc_interrupt() {
 }
 
 uint8_t vector_alloc_specific_interrupt(uint8_t vector) {
-    if(vector < VECTOR_START || vector > VECTOR_END) { return -1; }
+    if(vector < VECTOR_START || vector > VECTOR_END) {
+        return -1;
+    }
     spinlock_lock(&g_vector_lock);
     if(g_vector_map[vector]) {
         spinlock_unlock(&g_vector_lock);

@@ -161,10 +161,14 @@ static vm_region_t* region_alloc(bool global_lock_acquired) {
         spinlock_nodw_unlock(&g_region_cache_lock);
 
         phys_addr_t page = pmm_alloc_page(PMM_FLAG_ZERO);
-        if(!global_lock_acquired) { spinlock_nodw_lock(&g_vm_global_address_space->lock); }
+        if(!global_lock_acquired) {
+            spinlock_nodw_lock(&g_vm_global_address_space->lock);
+        }
 
         uintptr_t address;
-        if(!find_hole(g_vm_global_address_space, VM_NO_HINT, PAGE_SIZE_DEFAULT, PAGE_SIZE_DEFAULT, &address)) { arch_panic("out of global address space"); }
+        if(!find_hole(g_vm_global_address_space, VM_NO_HINT, PAGE_SIZE_DEFAULT, PAGE_SIZE_DEFAULT, &address)) {
+            arch_panic("out of global address space");
+        }
 
         ptm_map(g_vm_global_address_space, address, page, PAGE_SIZE_DEFAULT, VM_PROT_RW, VM_CACHE_NORMAL, VM_PRIVILEGE_KERNEL, true);
 
@@ -302,7 +306,9 @@ static void* map_common(vm_address_space_t* address_space, void* hint, size_t le
         assertf(false, "length must be non-zero and page aligned %d", length);
         return nullptr;
     }
-    if(address % align != 0) { address = ALIGN_UP(address, align); }
+    if(address % align != 0) {
+        address = ALIGN_UP(address, align);
+    }
 
     vm_region_t* region = region_alloc(false);
     spinlock_nodw_lock(&address_space->lock);
@@ -536,7 +542,8 @@ void vm_fault_dw(void* data) {
     assert(thread->process != nullptr);
 
     bool ok = address_space_fix_page(thread->process->address_space, thread->vm_fault.address);
-    if(!ok) {}
+    if(!ok) {
+    }
 
     thread->vm_fault.in_process = false;
 }

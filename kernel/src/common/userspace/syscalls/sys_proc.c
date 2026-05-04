@@ -24,9 +24,15 @@ syscall_ret_t syscall_sys_debug_log(syscall_args_t args) {
     uint64_t count = args.arg2;
     LOG_STRC("buf=0x%lx, count=%lu\n", buf, count);
 
-    if(LOG_LEVEL_MIN > LOG_LEVEL_DBGL) { return SYSCALL_RET_VALUE(0); }
-    if(count == 0) { return SYSCALL_RET_VALUE(0); }
-    if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, buf, count)) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT); }
+    if(LOG_LEVEL_MIN > LOG_LEVEL_DBGL) {
+        return SYSCALL_RET_VALUE(0);
+    }
+    if(count == 0) {
+        return SYSCALL_RET_VALUE(0);
+    }
+    if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, buf, count)) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT);
+    }
 
     LOG_DBGL("%.*s\n", (int) count, (const char*) buf);
     return SYSCALL_RET_VALUE(0);
@@ -49,7 +55,9 @@ syscall_ret_t internal_get_pgid(uint64_t pid) {
         process = process_get_by_pid(pid);
     }
 
-    if(process == nullptr) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_INVAL); }
+    if(process == nullptr) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_INVAL);
+    }
 
     return SYSCALL_RET_VALUE(process->process_group_pid);
 }
@@ -62,7 +70,9 @@ syscall_ret_t internal_set_pgid(uint64_t pid, uint64_t pgid) {
         process = process_get_by_pid(pid);
     }
 
-    if(process == nullptr) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_INVAL); }
+    if(process == nullptr) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_INVAL);
+    }
 
     // @todo: make this not fucking lazy
     process->process_group_pid = pgid;

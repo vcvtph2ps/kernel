@@ -56,12 +56,24 @@ typedef struct {
 
 
 bool elf_supported(const elf64_elf_header_t* elf_header) {
-    if(!elf_header) { return false; }
-    if(elf_header->e_ident[0] != 0x7f || elf_header->e_ident[1] != 'E' || elf_header->e_ident[2] != 'L' || elf_header->e_ident[3] != 'F') { return false; }
-    if(elf_header->e_ident[ELF_CLASS_IDX] != ELF_CLASS_64_BIT) { return false; }
-    if(elf_header->e_ident[ELF_DATA_IDX] != ELF_DATA_2LSB) { return false; }
-    if(elf_header->e_machine != EMACHINE_X86_64) { return false; }
-    if(elf_header->e_type != ETYPE_EXEC && elf_header->e_type != ETYPE_DYN) { return false; }
+    if(!elf_header) {
+        return false;
+    }
+    if(elf_header->e_ident[0] != 0x7f || elf_header->e_ident[1] != 'E' || elf_header->e_ident[2] != 'L' || elf_header->e_ident[3] != 'F') {
+        return false;
+    }
+    if(elf_header->e_ident[ELF_CLASS_IDX] != ELF_CLASS_64_BIT) {
+        return false;
+    }
+    if(elf_header->e_ident[ELF_DATA_IDX] != ELF_DATA_2LSB) {
+        return false;
+    }
+    if(elf_header->e_machine != EMACHINE_X86_64) {
+        return false;
+    }
+    if(elf_header->e_type != ETYPE_EXEC && elf_header->e_type != ETYPE_DYN) {
+        return false;
+    }
     return true;
 }
 
@@ -78,8 +90,12 @@ bool internal_allocate_for_image(vm_address_space_t* address_space, const elf64_
 
     for(size_t i = 0; i < elf_header->e_phnum; i++) {
         if(phdr_cache[i].p_type == PTYPE_LOAD) {
-            if(phdr_cache[i].p_vaddr < allocation.image_start_address) { allocation.image_start_address = phdr_cache[i].p_vaddr; }
-            if(phdr_cache[i].p_vaddr + phdr_cache[i].p_memsz > allocation.image_end_address) { allocation.image_end_address = phdr_cache[i].p_vaddr + phdr_cache[i].p_memsz; }
+            if(phdr_cache[i].p_vaddr < allocation.image_start_address) {
+                allocation.image_start_address = phdr_cache[i].p_vaddr;
+            }
+            if(phdr_cache[i].p_vaddr + phdr_cache[i].p_memsz > allocation.image_end_address) {
+                allocation.image_end_address = phdr_cache[i].p_vaddr + phdr_cache[i].p_memsz;
+            }
         }
     }
 
@@ -108,12 +124,20 @@ bool internal_allocate_for_image(vm_address_space_t* address_space, const elf64_
 
 void internal_elf_handle_pt_load(vm_address_space_t* address_space, vfs_path_t* path, elf64_program_header_t* phdr, elf_image_allocation* allocation) {
     vm_protection_t flags = VM_PROT_NO_ACCESS;
-    if(phdr->p_flags & PFLAGS_READ) { flags.read = true; }
-    if(phdr->p_flags & PFLAGS_WRITE) { flags.write = true; }
-    if(phdr->p_flags & PFLAGS_EXECUTE) { flags.execute = true; }
+    if(phdr->p_flags & PFLAGS_READ) {
+        flags.read = true;
+    }
+    if(phdr->p_flags & PFLAGS_WRITE) {
+        flags.write = true;
+    }
+    if(phdr->p_flags & PFLAGS_EXECUTE) {
+        flags.execute = true;
+    }
     virt_addr_t start_vaddr = MATH_FLOOR(allocation->image_offset + phdr->p_vaddr, PAGE_SIZE_DEFAULT);
     virt_addr_t end_vaddr = ALIGN_UP(allocation->image_offset + phdr->p_vaddr + phdr->p_memsz, PAGE_SIZE_DEFAULT);
-    for(virt_addr_t j = start_vaddr; j < end_vaddr; j += PAGE_SIZE_DEFAULT) { vm_rewrite_prot(address_space, (void*) j, PAGE_SIZE_DEFAULT, flags); }
+    for(virt_addr_t j = start_vaddr; j < end_vaddr; j += PAGE_SIZE_DEFAULT) {
+        vm_rewrite_prot(address_space, (void*) j, PAGE_SIZE_DEFAULT, flags);
+    }
 
     virt_addr_t phdr_data = (virt_addr_t) heap_alloc(phdr->p_filesz);
     assert(vfs_read(path, (void*) phdr_data, phdr->p_filesz, phdr->p_offset, nullptr) == VFS_RESULT_OK && "Failed to read program header data");
@@ -168,11 +192,15 @@ bool internal_elf_load_image(vm_address_space_t* address_space, const elf64_elf_
         }
     }
 
-    if(loader_info->phdr_table == 0) { loader_info->phdr_table = allocation.image_offset + elf_header->e_phoff; }
+    if(loader_info->phdr_table == 0) {
+        loader_info->phdr_table = allocation.image_offset + elf_header->e_phoff;
+    }
 
     // load phdrs
     for(size_t i = 0; i < elf_header->e_phnum; i++) {
-        if(phdr_cache[i].p_type != PTYPE_LOAD && phdr_cache[i].p_type != PTYPE_INTERP) { continue; }
+        if(phdr_cache[i].p_type != PTYPE_LOAD && phdr_cache[i].p_type != PTYPE_INTERP) {
+            continue;
+        }
         LOG_STRC("Loading segment %zu: vaddr=0x%lx, size=%zu\n", i, allocation.image_offset + phdr_cache[i].p_vaddr, phdr_cache[i].p_filesz);
         if(phdr_cache[i].p_type == PTYPE_LOAD) internal_elf_handle_pt_load(address_space, path, &phdr_cache[i], &allocation);
         if(phdr_cache[i].p_type == PTYPE_INTERP) {

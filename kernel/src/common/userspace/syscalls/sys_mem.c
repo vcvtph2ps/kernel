@@ -26,17 +26,27 @@ syscall_ret_t syscall_sys_vm_map(syscall_args_t args) {
     assert((flags & (MAP_ANON)) != 0);
 
     vm_protection_t vm_prot = VM_PROT_RO;
-    if(prot & PROT_READ) { vm_prot.read = true; }
-    if(prot & PROT_WRITE) { vm_prot.write = true; }
-    if(prot & PROT_EXEC) { vm_prot.execute = true; }
+    if(prot & PROT_READ) {
+        vm_prot.read = true;
+    }
+    if(prot & PROT_WRITE) {
+        vm_prot.write = true;
+    }
+    if(prot & PROT_EXEC) {
+        vm_prot.execute = true;
+    }
 
     uint64_t vm_flags = VM_FLAG_NONE;
-    if(flags & MAP_FIXED) { vm_flags |= VM_FLAG_FIXED; }
+    if(flags & MAP_FIXED) {
+        vm_flags |= VM_FLAG_FIXED;
+    }
 
     process_t* current_process = CPU_LOCAL_GET_CURRENT_THREAD()->common.process;
 
     virt_addr_t vaddr = (virt_addr_t) vm_map_anon(current_process->address_space, (void*) hint, ALIGN_UP(size, PAGE_SIZE_DEFAULT), vm_prot, VM_CACHE_NORMAL, vm_flags);
-    if(vaddr == 0) { return SYSCALL_RET_ERROR(SYSCALL_ERROR_INVAL); }
+    if(vaddr == 0) {
+        return SYSCALL_RET_ERROR(SYSCALL_ERROR_INVAL);
+    }
     return SYSCALL_RET_VALUE(vaddr);
 }
 
@@ -55,9 +65,15 @@ syscall_ret_t syscall_sys_vm_protect(syscall_args_t args) {
     size_t prot = args.arg3;
 
     vm_protection_t vm_prot = VM_PROT_RO;
-    if(prot & PROT_READ) { vm_prot.read = true; }
-    if(prot & PROT_WRITE) { vm_prot.write = true; }
-    if(prot & PROT_EXEC) { vm_prot.execute = true; }
+    if(prot & PROT_READ) {
+        vm_prot.read = true;
+    }
+    if(prot & PROT_WRITE) {
+        vm_prot.write = true;
+    }
+    if(prot & PROT_EXEC) {
+        vm_prot.execute = true;
+    }
 
     process_t* current_process = CPU_LOCAL_GET_CURRENT_THREAD()->common.process;
 

@@ -86,16 +86,22 @@ static const char* g_name_table[22] = { "Divide Error",
             0
         );
 
-        if(reserved_bit) { nl_printf("Reserved bit in page table entry\n"); }
+        if(reserved_bit) {
+            nl_printf("Reserved bit in page table entry\n");
+        }
         if(protection_key) {
             nl_printf("Protection key violation\n");
         } else {
             const char* who = user_mode ? "User Process" : "Kernel";
             const char* access = write_access ? "write" : "read";
-            if(instruction_fetch) { access = "execute"; }
+            if(instruction_fetch) {
+                access = "execute";
+            }
 
             const char* reason = page_protection_violation ? "non-accessable" : "non-present";
-            if(instruction_fetch) { reason = "non-executable"; }
+            if(instruction_fetch) {
+                reason = "non-executable";
+            }
 
             nl_printf("%s tried to %s a %s page\n", who, access, reason);
         }
@@ -104,7 +110,9 @@ static const char* g_name_table[22] = { "Divide Error",
             nl_printf("General Protection Fault (0x%x | no error code)\n", frame->vector);
         } else {
             nl_printf("General Protection Fault (0x%x | 0x%lx)", frame->vector, frame->error);
-            if(frame->error & 0x1) { nl_printf("  [external event]"); }
+            if(frame->error & 0x1) {
+                nl_printf("  [external event]");
+            }
             if(frame->error & 0x2) {
                 nl_printf(" [idt]");
             } else if(frame->error & 0x4) {
