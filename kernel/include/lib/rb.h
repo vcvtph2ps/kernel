@@ -54,6 +54,13 @@ void rb_remove(rb_tree_t* tree, rb_node_t* node);
 rb_node_t* rb_find_first(rb_tree_t* tree);
 
 /**
+ * @brief Finds the first node in the red-black tree (the node with the smallest value).
+ * @param tree The red-black tree to search.
+ * @return A pointer to the first node in the tree, or NULL if the tree is empty.
+ */
+rb_node_t* rb_find_next(rb_tree_t* tree, rb_node_t* current);
+
+/**
  * @brief Finds the target node in the red-black tree based on the specified search type.
  * @param tree The red-black tree to search.
  * @param needle The value to search for in the tree.

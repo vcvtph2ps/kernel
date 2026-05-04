@@ -65,17 +65,20 @@ syscall_ret_t syscall_sys_invalid(syscall_args_t args) {
     return SYSCALL_RET_ERROR(SYSCALL_ERROR_INVAL);
 }
 
-syscall_ret_t dispatch_syscall(uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t arg4, uint64_t arg5, uint64_t arg6, syscall_nr_t syscall_nr) {
+syscall_ret_t dispatch_syscall(syscall_frame_t* frame) {
+    uint64_t syscall_nr = frame->regs.rax;
+    assert(syscall_nr < SYSCALL_HIGHEST_NR);
     syscall_entry_t entry = g_syscall_table[syscall_nr];
 
     syscall_args_t args;
     args.syscall_nr = syscall_nr;
-    args.arg1 = arg1;
-    args.arg2 = arg2;
-    args.arg3 = arg3;
-    args.arg4 = arg4;
-    args.arg5 = arg5;
-    args.arg6 = arg6;
+    args.arg1 = frame->regs.rdi;
+    args.arg2 = frame->regs.rsi;
+    args.arg3 = frame->regs.rdx;
+    args.arg4 = frame->regs.r10;
+    args.arg5 = frame->regs.r8;
+    args.arg6 = frame->regs.r9;
+    args.frame = frame;
 
     return entry.handler(args);
 }

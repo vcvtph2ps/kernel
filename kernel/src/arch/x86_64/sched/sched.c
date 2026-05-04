@@ -91,7 +91,7 @@ x86_64_thread_t* sched_arch_create_thread_common(size_t tid, void* process, sche
     thread->common.tid = tid;
     thread->common.state = THREAD_STATE_READY;
     thread->common.sched = sched;
-    thread->stack = stack;
+    thread->kernel_stack = stack;
     thread->kernel_stack_top = kernel_stack_top;
     thread->common.process = process;
     thread->fpu_area = nullptr;
@@ -143,7 +143,7 @@ void sched_arch_context_switch(thread_t* t_current, thread_t* t_next) {
     x86_64_thread_t* next = CONTAINER_OF(t_next, x86_64_thread_t, common);
 
     CPU_LOCAL_WRITE(current_thread, next);
-    interrupt_set_usermode_stack(next->stack);
+    interrupt_set_usermode_stack(next->kernel_stack);
     if(current->common.process) {
         arch_fpu_save(current->fpu_area);
     }

@@ -1,10 +1,10 @@
 #pragma once
-
-
+#include <arch/interrupts.h>
 #include <common/sched/thread.h>
 #include <list.h>
 #include <memory/memory.h>
 #include <spinlock.h>
+
 typedef struct scheduler scheduler_t; // NOLINT
 
 struct scheduler {

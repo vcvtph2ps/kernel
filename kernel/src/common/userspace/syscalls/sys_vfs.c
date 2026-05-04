@@ -146,7 +146,8 @@ syscall_ret_t syscall_sys_write(syscall_args_t args) {
     return SYSCALL_RET_VALUE(write_count);
 }
 
-syscall_ret_t syscall_sys_close(uint64_t fd) {
+syscall_ret_t syscall_sys_close(syscall_args_t args) {
+    uint64_t fd = args.arg1;
     LOG_STRC("pid=%lu, fd=%d\n", CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid, fd);
     fd_store_t* store = CPU_LOCAL_GET_CURRENT_THREAD()->common.process->fd_store;
     if(!fd_store_close(store, fd)) {
@@ -306,7 +307,13 @@ syscall_ret_t syscall_sys_stat(syscall_args_t args) {
     return ret;
 }
 
-syscall_ret_t syscall_sys_stat_at(uint64_t fd, uint64_t path, size_t path_len, uint64_t statbuf, size_t flag) {
+syscall_ret_t syscall_sys_stat_at(syscall_args_t args) {
+    uint64_t fd = args.arg1;
+    uint64_t path = args.arg2;
+    size_t path_len = args.arg3;
+    uint64_t statbuf = args.arg4;
+    size_t flag = args.arg5;
+
     (void) flag;
     if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, statbuf, sizeof(structs_stat_t))) {
         return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT);

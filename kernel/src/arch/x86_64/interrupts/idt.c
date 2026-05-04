@@ -2,6 +2,7 @@
 #include <arch/internal/cr.h>
 #include <arch/interrupts.h>
 #include <common/arch.h>
+#include <log.h>
 #include <memory/memory.h>
 
 #include "common/init.h"

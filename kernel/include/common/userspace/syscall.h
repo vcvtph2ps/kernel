@@ -58,6 +58,12 @@ static_assert(sizeof(syscall_ret_t) == 16, "syscall_ret_t must be 16 bytes");
 #define SYSCALL_RET_ERROR(err_code) ((syscall_ret_t) { .is_error = true, .err = (err_code) })
 #define SYSCALL_RET_VALUE(val) ((syscall_ret_t) { .is_error = false, .value = (val) })
 
+// @note: user rip is in rcx. user rflags is in r11
+typedef struct {
+    uint64_t user_rsp;
+    arch_interrupts_regs_t regs;
+} syscall_frame_t;
+
 typedef struct {
     uint64_t syscall_nr;
     uint64_t arg1;
@@ -66,6 +72,7 @@ typedef struct {
     uint64_t arg4;
     uint64_t arg5;
     uint64_t arg6;
+    syscall_frame_t* frame;
 } syscall_args_t;
 
 /**

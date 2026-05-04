@@ -11,6 +11,7 @@
 #include <lib/spinlock.h>
 #include <list.h>
 #include <math.h>
+#include <memory/heap.h>
 #include <memory/memory.h>
 #include <memory/pmm.h>
 #include <memory/ptm.h>
@@ -292,62 +293,6 @@ static bool memory_exists(vm_address_space_t* address_space, uintptr_t address, 
     return true;
 }
 
-
-static void* map_common(vm_address_space_t* address_space, void* hint, size_t length, size_t align, vm_protection_t prot, vm_cache_t cache, vm_flags_t flags, vm_region_type_t type, uintptr_t direct_physical_address) {
-    assert(IS_POWER_OF_TWO(align) && align % PAGE_SIZE_DEFAULT == 0);
-
-    uintptr_t address = (uintptr_t) hint;
-    assert(address_space != nullptr);
-    if((flags & VM_FLAG_FIXED) && address % align != 0) {
-        assert(false && "hint must be aligned to the requested alignment when VM_FLAG_FIXED is set");
-        return nullptr;
-    }
-    if(length == 0 || length % PAGE_SIZE_DEFAULT != 0) {
-        assertf(false, "length must be non-zero and page aligned %d", length);
-        return nullptr;
-    }
-    if(address % align != 0) {
-        address = ALIGN_UP(address, align);
-    }
-
-    vm_region_t* region = region_alloc(false);
-    spinlock_nodw_lock(&address_space->lock);
-
-    if(!(flags & VM_FLAG_FIXED)) {
-        bool result = find_hole(address_space, address, length, align, &address);
-        if(!result) {
-            region_free(region);
-            spinlock_nodw_unlock(&address_space->lock);
-            return nullptr;
-        }
-    }
-
-    assert(segment_in_bounds(address, length, address_space->start, address_space->end));
-    assert(address % align == 0 && length % PAGE_SIZE_DEFAULT == 0);
-
-    region->address_space = address_space;
-    region->type = type;
-    region->base = address;
-    region->length = length;
-    region->protection = prot;
-    region->cache = cache;
-    region->dynamically_backed = (flags & VM_FLAG_DYNAMICALLY_BACKED) != 0;
-
-    switch(region->type) {
-        case VM_REGION_TYPE_ANON: region->type_data.anon.back_zeroed = (flags & VM_FLAG_ZERO) != 0; break;
-        case VM_REGION_TYPE_DIRECT:
-            assert(direct_physical_address % PAGE_SIZE_DEFAULT == 0);
-            region->type_data.direct.physical_address = direct_physical_address;
-            break;
-    }
-
-    if(!region->dynamically_backed) region_map(region, region->base, region->length);
-
-    region_insert(address_space, region);
-    spinlock_nodw_unlock(&address_space->lock);
-    return (void*) address;
-}
-
 static void rewrite_common(vm_address_space_t* address_space, void* address, size_t length, rewrite_type_t type, vm_protection_t prot, vm_cache_t cache) {
     if(length == 0) return;
 
@@ -460,6 +405,67 @@ static void rewrite_common(vm_address_space_t* address_space, void* address, siz
     spinlock_nodw_unlock(&address_space->lock);
 }
 
+
+static void* map_common(vm_address_space_t* address_space, void* hint, size_t length, size_t align, vm_protection_t prot, vm_cache_t cache, vm_flags_t flags, vm_region_type_t type, uintptr_t direct_physical_address) {
+    assert(IS_POWER_OF_TWO(align) && align % PAGE_SIZE_DEFAULT == 0);
+
+    uintptr_t address = (uintptr_t) hint;
+    assert(address_space != nullptr);
+    if((flags & VM_FLAG_FIXED) && address % align != 0) {
+        assert(false && "hint must be aligned to the requested alignment when VM_FLAG_FIXED is set");
+        return nullptr;
+    }
+    if(length == 0 || length % PAGE_SIZE_DEFAULT != 0) {
+        assertf(false, "length must be non-zero and page aligned %d", length);
+        return nullptr;
+    }
+    if(address % align != 0) {
+        address = ALIGN_UP(address, align);
+    }
+
+    if(flags & VM_FLAG_FIXED) {
+        rewrite_common(address_space, (void*) address, length, REWRITE_TYPE_DELETE, (vm_protection_t) {}, VM_CACHE_NORMAL);
+    }
+
+    vm_region_t* region = region_alloc(false);
+    spinlock_nodw_lock(&address_space->lock);
+
+    if(!(flags & VM_FLAG_FIXED)) {
+        bool result = find_hole(address_space, address, length, align, &address);
+        if(!result) {
+            region_free(region);
+            spinlock_nodw_unlock(&address_space->lock);
+            return nullptr;
+        }
+    }
+
+    assert(segment_in_bounds(address, length, address_space->start, address_space->end));
+    assert(address % align == 0 && length % PAGE_SIZE_DEFAULT == 0);
+
+    region->address_space = address_space;
+    region->type = type;
+    region->base = address;
+    region->length = length;
+    region->protection = prot;
+    region->cache = cache;
+    region->dynamically_backed = (flags & VM_FLAG_DYNAMICALLY_BACKED) != 0;
+    region->shared = (flags & VM_FLAG_SHARED) != 0;
+
+    switch(region->type) {
+        case VM_REGION_TYPE_ANON: region->type_data.anon.back_zeroed = (flags & VM_FLAG_ZERO) != 0; break;
+        case VM_REGION_TYPE_DIRECT:
+            assert(direct_physical_address % PAGE_SIZE_DEFAULT == 0);
+            region->type_data.direct.physical_address = direct_physical_address;
+            break;
+    }
+
+    if(!region->dynamically_backed) region_map(region, region->base, region->length);
+
+    region_insert(address_space, region);
+    spinlock_nodw_unlock(&address_space->lock);
+    return (void*) address;
+}
+
 void* vm_map_anon(vm_address_space_t* address_space, void* hint, size_t length, vm_protection_t prot, vm_cache_t cache, vm_flags_t flags) {
     return map_common(address_space, hint, length, PAGE_SIZE_DEFAULT, prot, cache, flags, VM_REGION_TYPE_ANON, 0);
 }
@@ -543,6 +549,7 @@ void vm_fault_dw(void* data) {
 
     bool ok = address_space_fix_page(thread->process->address_space, thread->vm_fault.address);
     if(!ok) {
+        arch_panic("vm_fault_dw: page fault at 0x%lx in process %d couldn't be fixed\n", thread->vm_fault.address, thread->process->pid);
     }
 
     thread->vm_fault.in_process = false;

@@ -4,7 +4,7 @@
 #include <memory/memory.h>
 
 typedef struct {
-    virt_addr_t stack;
+    virt_addr_t kernel_stack;
     virt_addr_t syscall_storage;
     virt_addr_t kernel_stack_top;
 

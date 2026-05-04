@@ -253,6 +253,23 @@ rb_node_t* rb_find_first(rb_tree_t* tree) {
     return current;
 }
 
+rb_node_t* rb_find_next(rb_tree_t* tree, rb_node_t* current) {
+    (void) tree;
+    if(current->right != nullptr) {
+        current = current->right;
+        while(current->left != nullptr) {
+            current = current->left;
+        }
+        return current;
+    }
+
+    while(current->parent != nullptr && current == current->parent->right) {
+        current = current->parent;
+    }
+
+    return current->parent;
+}
+
 rb_node_t* rb_find(rb_tree_t* tree, size_t search_value, rb_search_type_t search_type) {
     rb_node_t* nearest_node = nullptr;
     size_t nearest_value = 0;

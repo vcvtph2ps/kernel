@@ -1,3 +1,7 @@
+#include <arch/hardware/fpu.h>
+#include <arch/interrupts.h>
+#include <arch/msr.h>
+#include <arch/sched/thread.h>
 #include <common/sched/sched.h>
 #include <common/sched/thread.h>
 #include <common/userspace/process.h>

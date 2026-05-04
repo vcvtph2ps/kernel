@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <common/arch.h>
 #include <common/boot/bootloader.h>
+#include <common/init.h>
 #include <common/interrupts/interrupt.h>
 #include <log.h>
 #include <memory/memory.h>
@@ -12,9 +13,8 @@
 #include <memory/pmm.h>
 #include <memory/ptm.h>
 #include <memory/vm.h>
+#include <spinlock.h>
 #include <string.h>
-
-#include "common/init.h"
 
 #define VADDR_TO_INDEX(VADDR, LEVEL) (((VADDR) >> ((LEVEL) * 9 + 3)) & 0x1FF)
 #define INDEX_TO_VADDR(INDEX, LEVEL) ((uint64_t) (INDEX) << ((LEVEL) * 9 + 3))
@@ -122,8 +122,8 @@ static uint64_t break_large_page(uint64_t* table, int index, int current_level) 
     entry |= pmm_alloc_page(PMM_FLAG_ZERO);
     if(pat) entry |= SMALL_PAGE_BIT_PAT;
 
-    uint64_t* new_table = (void*) (entry & SMALL_PAGE_ADDRESS_MASK);
-    for(int i = 0; i < 512 * ARCH_PAGE_SIZE_4K; i += ARCH_PAGE_SIZE_4K) new_table[i] = new_entry | (address + i);
+    uint64_t* new_table = (void*) TO_HHDM(entry & SMALL_PAGE_ADDRESS_MASK);
+    for(int i = 0; i < 512; i++) new_table[i] = new_entry | (address + i * ARCH_PAGE_SIZE_4K);
 
     __atomic_store(&table[index], &entry, __ATOMIC_SEQ_CST);
 
@@ -300,15 +300,12 @@ void ptm_unmap(vm_address_space_t* address_space, uintptr_t vaddr, size_t length
     spinlock_nodw_unlock(&address_space->ptm.ptm_lock);
 }
 
-bool ptm_physical(vm_address_space_t* address_space, uintptr_t vaddr, uintptr_t* paddr) {
-    spinlock_nodw_lock(&address_space->ptm.ptm_lock);
-
+bool internal_ptm_physical(vm_address_space_t* address_space, uintptr_t vaddr, uintptr_t* paddr) {
     uint64_t* current_table = (uint64_t*) TO_HHDM(address_space->ptm.tlpt);
     int j = LEVEL_COUNT;
     for(; j > 1; j--) {
         int index = VADDR_TO_INDEX(vaddr, j);
         if((current_table[index] & PAGE_BIT_PRESENT) == 0) {
-            spinlock_nodw_unlock(&address_space->ptm.ptm_lock);
             return false;
         }
         if((current_table[index] & HUGE_PAGE_BIT_PAGE_STOP) != 0) break;
@@ -316,7 +313,6 @@ bool ptm_physical(vm_address_space_t* address_space, uintptr_t vaddr, uintptr_t*
     }
 
     uint64_t entry = current_table[VADDR_TO_INDEX(vaddr, j)];
-    spinlock_nodw_unlock(&address_space->ptm.ptm_lock);
 
     if((entry & PAGE_BIT_PRESENT) == 0) return false;
 
@@ -327,6 +323,13 @@ bool ptm_physical(vm_address_space_t* address_space, uintptr_t vaddr, uintptr_t*
         default: __builtin_unreachable();
     }
     return true;
+}
+
+bool ptm_physical(vm_address_space_t* address_space, uintptr_t vaddr, uintptr_t* paddr) {
+    spinlock_nodw_lock(&address_space->ptm.ptm_lock);
+    bool result = internal_ptm_physical(address_space, vaddr, paddr);
+    spinlock_nodw_unlock(&address_space->ptm.ptm_lock);
+    return result;
 }
 
 void ptm_load_address_space(vm_address_space_t* address_space) {
@@ -401,7 +404,6 @@ void page_fault_handler(arch_interrupts_frame_t* frame) {
     if(vm_fault(frame->interrupt_data, reason)) {
         return;
     }
-    arch_panic_int(frame);
 }
 
 void ptm_init_kernel(uint32_t core_id) {
