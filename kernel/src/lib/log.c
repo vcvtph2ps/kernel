@@ -62,14 +62,18 @@ bool log_add_sink(const log_sink_t* sink) {
 
 static void dispatch_to_sinks(log_level_t level, const char* buffer) {
     for(size_t i = 0; i < g_sink_count; i++) {
-        if(level >= g_sinks[i].min_level && g_sinks[i].write != nullptr) { g_sinks[i].write(buffer, g_sinks[i].ctx); }
+        if(level >= g_sinks[i].min_level && g_sinks[i].write != nullptr) {
+            g_sinks[i].write(buffer, g_sinks[i].ctx);
+        }
     }
 }
 
 void log_init(void) {
     log_sink_t debug_sink = { .min_level = LOG_LEVEL_STRC, .write = sink_debug, .ctx = nullptr };
     log_add_sink(&debug_sink);
+}
 
+void log_init_framebuffer(void) {
     if(g_bootloader_info.framebuffer_count == 0) {
         dispatch_to_sinks(LOG_LEVEL_WARN, "No framebuffer found!\n");
         return;
@@ -111,7 +115,9 @@ void log_init(void) {
         FLANTERM_FB_ROTATE_0
     );
 
-    if(g_ft_ctx == nullptr) { arch_panic("Failed to setup flanterm context"); }
+    if(g_ft_ctx == nullptr) {
+        arch_panic("Failed to setup flanterm context");
+    }
 
     log_sink_t ft_sink = { .min_level = LOG_LEVEL_INFO, .write = sink_flanterm, .ctx = g_ft_ctx };
     log_add_sink(&ft_sink);
@@ -142,7 +148,9 @@ int vprintf(const char* fmt, va_list val) {
 }
 
 void log_print_nolock(log_level_t level, const char* fmt, ...) {
-    if(level < LOG_LEVEL_MIN) { return; }
+    if(level < LOG_LEVEL_MIN) {
+        return;
+    }
     char buffer[512];
     va_list val;
     va_start(val, fmt);
@@ -152,7 +160,9 @@ void log_print_nolock(log_level_t level, const char* fmt, ...) {
 }
 
 void log_print(log_level_t level, const char* fmt, ...) {
-    if(level < LOG_LEVEL_MIN) { return; }
+    if(level < LOG_LEVEL_MIN) {
+        return;
+    }
     char buffer[512];
     va_list val;
     va_start(val, fmt);
