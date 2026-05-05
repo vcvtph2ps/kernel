@@ -25,6 +25,7 @@ const char* userspace_syscall_number_to_string(syscall_nr_t nr) {
         case SYSCALL_SYS_EXIT:   return "SYS_EXIT";
         case SYSCALL_DEBUG_LOG:  return "SYS_DEBUG_LOG";
         case SYSCALL_TCB_SET:    return "SYS_TCB_SET";
+        case SYSCALL_FORK:       return "SYS_FORK";
         case SYSCALL_VM_MAP:     return "SYS_VM_MAP";
         case SYSCALL_VM_UNMAP:   return "SYS_VM_UNMAP";
         case SYSCALL_VM_PROTECT: return "SYS_VM_PROTECT";
@@ -116,19 +117,4 @@ void syscall_init() {
     SYSCALL_DISPATCHER(SYSCALL_FUTEX, syscall_sys_futex);
     SYSCALL_DISPATCHER(SYSCALL_GET_CLOCK, syscall_sys_get_clock);
     SYSCALL_DISPATCHER(SYSCALL_GET_PROCESS_INFO, syscall_sys_get_process_info);
-}
-
-bool userspace_validate_buffer(process_t* proc, virt_addr_t addr, size_t size) {
-    if(addr < proc->address_space->start || addr + size > proc->address_space->end) {
-        return false;
-    }
-
-    for(virt_addr_t i = addr; i < addr + size; i += PAGE_SIZE_DEFAULT) {
-        phys_addr_t phys;
-        if(!ptm_physical(proc->address_space, i, &phys)) {
-            return false;
-        }
-    }
-
-    return true;
 }

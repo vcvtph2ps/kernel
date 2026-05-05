@@ -26,7 +26,7 @@ syscall_ret_t syscall_sys_open(syscall_args_t args) {
     if(pathname_len == 0 || pathname_len > 256) {
         return SYSCALL_RET_ERROR(SYSCALL_ERROR_INVAL);
     }
-    if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, pathname_str, pathname_len)) {
+    if(!vm_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process->address_space, pathname_str, pathname_len)) {
         return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT);
     }
 
@@ -70,7 +70,7 @@ syscall_ret_t syscall_sys_read(syscall_args_t args) {
     if(count == 0) {
         return SYSCALL_RET_VALUE(0);
     }
-    if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, buf, count)) {
+    if(!vm_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process->address_space, buf, count)) {
         return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT);
     }
 
@@ -114,7 +114,7 @@ syscall_ret_t syscall_sys_write(syscall_args_t args) {
     if(count == 0) {
         return SYSCALL_RET_VALUE(0);
     }
-    if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, buf, count)) {
+    if(!vm_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process->address_space, buf, count)) {
         return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT);
     }
 
@@ -285,7 +285,7 @@ syscall_ret_t syscall_sys_stat(syscall_args_t args) {
     virt_addr_t statbuf = args.arg2;
 
     LOG_STRC("pid=%lu, fd=%d\n", CPU_LOCAL_GET_CURRENT_THREAD()->common.process->pid, fd);
-    if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, statbuf, sizeof(structs_stat_t))) {
+    if(!vm_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process->address_space, statbuf, sizeof(structs_stat_t))) {
         return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT);
     }
 
@@ -315,14 +315,14 @@ syscall_ret_t syscall_sys_stat_at(syscall_args_t args) {
     size_t flag = args.arg5;
 
     (void) flag;
-    if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, statbuf, sizeof(structs_stat_t))) {
+    if(!vm_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process->address_space, statbuf, sizeof(structs_stat_t))) {
         return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT);
     }
 
     if(path_len == 0 || path_len > 256) {
         return SYSCALL_RET_ERROR(SYSCALL_ERROR_INVAL);
     }
-    if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, path, path_len)) {
+    if(!vm_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process->address_space, path, path_len)) {
         return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT);
     }
 

@@ -30,7 +30,7 @@ syscall_ret_t syscall_sys_debug_log(syscall_args_t args) {
     if(count == 0) {
         return SYSCALL_RET_VALUE(0);
     }
-    if(!userspace_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process, buf, count)) {
+    if(!vm_validate_buffer(CPU_LOCAL_GET_CURRENT_THREAD()->common.process->address_space, buf, count)) {
         return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT);
     }
 

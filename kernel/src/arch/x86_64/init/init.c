@@ -89,6 +89,6 @@ void arch_init_ap(uint32_t core_id) {
         arch_relax();
     }
 
-    sched_arch_handoff();
+    // sched_arch_handoff();
     while(1);
 }

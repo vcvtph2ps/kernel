@@ -193,6 +193,14 @@ size_t vm_copy_to(vm_address_space_t* dest_as, uintptr_t dest_addr, void* src, s
 size_t vm_copy_from(void* dest, vm_address_space_t* src_as, uintptr_t src_addr, size_t count);
 
 /**
+ * @brief Validates that the given buffer is a valid pointer to a buffer of the specified size in the given address space
+ * @param target_as The address space to validate against
+ * @param buf The virtual address of the start of the buffer
+ * @param count The size of the buffer in bytes
+ */
+bool vm_validate_buffer(vm_address_space_t* target_as, virt_addr_t buf, size_t count);
+
+/**
  * @brief Creates and initializes a new rb tree to be used for managing vm_region_t structures in an address space.
  * @return A new rb_tree_t instance that is ready to be used for managing vm_region_t structures in an address space.
  */

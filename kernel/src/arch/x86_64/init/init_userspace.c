@@ -70,7 +70,7 @@ void init_stage_userspace(uint32_t core_id) {
     ptm_init_user(process_as);
 
     elfldr_elf_loader_info_t* elf_info;
-    bool loaded_elf = elfldr_load_file(process_as, &VFS_MAKE_ABS_PATH("/usr/bin/bash"), &elf_info);
+    bool loaded_elf = elfldr_load_file(process_as, &VFS_MAKE_ABS_PATH("/usr/bin/hello"), &elf_info);
     if(!loaded_elf) {
         arch_panic("Failed to load init file");
     }

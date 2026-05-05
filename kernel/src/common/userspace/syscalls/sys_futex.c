@@ -210,7 +210,7 @@ syscall_ret_t syscall_sys_futex(syscall_args_t args) {
     uintptr_t timeout_ptr = args.arg4;
 
     process_t* proc = CPU_LOCAL_GET_CURRENT_THREAD()->common.process;
-    if(!userspace_validate_buffer(proc, uaddr, sizeof(int32_t))) {
+    if(!vm_validate_buffer(proc->address_space, uaddr, sizeof(int32_t))) {
         return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT);
     }
 
@@ -218,7 +218,7 @@ syscall_ret_t syscall_sys_futex(syscall_args_t args) {
     structs_timespec_t timeout_buf = {};
     structs_timespec_t* timeout = nullptr;
     if(timeout_ptr != 0) {
-        if(!userspace_validate_buffer(proc, timeout_ptr, sizeof(structs_timespec_t))) {
+        if(!vm_validate_buffer(proc->address_space, timeout_ptr, sizeof(structs_timespec_t))) {
             return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT);
         }
         vm_copy_from(&timeout_buf, proc->address_space, timeout_ptr, sizeof(structs_timespec_t));

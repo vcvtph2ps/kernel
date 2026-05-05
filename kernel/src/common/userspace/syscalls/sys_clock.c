@@ -12,8 +12,7 @@ syscall_ret_t syscall_sys_get_clock(syscall_args_t args) {
 
     process_t* proc = CPU_LOCAL_GET_CURRENT_THREAD()->common.process;
 
-
-    if(!userspace_validate_buffer(proc, timeout_struct, sizeof(structs_timespec_t))) {
+    if(!vm_validate_buffer(proc->address_space, timeout_struct, sizeof(structs_timespec_t))) {
         return SYSCALL_RET_ERROR(SYSCALL_ERROR_FAULT);
     }
 

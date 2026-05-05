@@ -9,6 +9,7 @@ typedef enum : uint64_t {
     SYSCALL_SYS_EXIT = 0,
     SYSCALL_DEBUG_LOG = 1,
     SYSCALL_TCB_SET = 2,
+    SYSCALL_FORK = 3,
 
     SYSCALL_VM_MAP = 10,
     SYSCALL_VM_UNMAP = 11,
@@ -79,11 +80,3 @@ typedef struct {
  * @brief Initializes the syscall dispatch system
  */
 void syscall_init();
-
-/**
- * @brief Validates that the given userspace buffer is a valid pointer to a buffer of the specified size in the given process's address space
- * @param process The process whose address space to validate against
- * @param buf The virtual address of the start of the buffer
- * @param count The size of the buffer in bytes
- */
-bool userspace_validate_buffer(process_t* process, virt_addr_t buf, size_t count); // NOLINT
